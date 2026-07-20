@@ -1,0 +1,25 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+build/
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.hprof
+.kotlin/
+
+# Gradle wrapper jar is intentionally NOT ignored — it must be committed
+!gradle/wrapper/gradle-wrapper.jar
+
+# Firebase / secrets — never commit
+google-services.json
+**/google-services.json
+*.keystore
+*.jks
+
+# Sentry
+sentry.properties
