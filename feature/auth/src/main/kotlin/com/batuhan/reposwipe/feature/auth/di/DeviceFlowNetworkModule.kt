@@ -20,7 +20,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DeviceFlowNetworkModule {
-
     @Provides
     @Singleton
     fun provideGitHubDeviceFlowApi(json: Json): GitHubDeviceFlowApi =

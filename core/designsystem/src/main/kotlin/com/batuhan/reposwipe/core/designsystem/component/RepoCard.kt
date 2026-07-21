@@ -54,30 +54,36 @@ fun RepoCard(
 ) {
     val shape = MaterialTheme.shapes.extraLarge
     Box(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest, shape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+        modifier =
+            modifier
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest, shape)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             RepoCardHeader(
                 data = data,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
             )
             RepoCardBody(
                 data = data,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(RepoSwipeTheme.spacing.lg),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(RepoSwipeTheme.spacing.lg),
             )
         }
     }
 }
 
 @Composable
-private fun RepoCardHeader(data: RepoCardData, modifier: Modifier = Modifier) {
+private fun RepoCardHeader(
+    data: RepoCardData,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier) {
         if (data.headerImageUrl != null) {
             AsyncImage(
@@ -88,30 +94,33 @@ private fun RepoCardHeader(data: RepoCardData, modifier: Modifier = Modifier) {
             )
         } else {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(data.languageColor ?: MaterialTheme.colorScheme.surfaceContainerHigh),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(data.languageColor ?: MaterialTheme.colorScheme.surfaceContainerHigh),
             )
         }
 
         // Bottom fade into the card surface (text legibility) + top wash (badge legibility).
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.3f),
-                        0.55f to Color.Transparent,
-                        1f to MaterialTheme.colorScheme.surfaceContainerHighest,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.3f),
+                            0.55f to Color.Transparent,
+                            1f to MaterialTheme.colorScheme.surfaceContainerHighest,
+                        ),
                     ),
-                ),
         )
 
         Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(RepoSwipeTheme.spacing.md),
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(RepoSwipeTheme.spacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             StatBadge(icon = RepoSwipeIcons.Star, value = data.starCount, iconTint = Color(0xFFF1E05A))
@@ -121,7 +130,10 @@ private fun RepoCardHeader(data: RepoCardData, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun RepoCardBody(data: RepoCardData, modifier: Modifier = Modifier) {
+private fun RepoCardBody(
+    data: RepoCardData,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.sm),
@@ -133,10 +145,11 @@ private fun RepoCardBody(data: RepoCardData, modifier: Modifier = Modifier) {
             AsyncImage(
                 model = data.ownerAvatarUrl,
                 contentDescription = null,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
                 contentScale = ContentScale.Crop,
             )
             Column {
@@ -190,17 +203,20 @@ private fun MetadataItem(
         horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
     ) {
         when {
-            dotColor != null -> Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(dotColor, CircleShape),
-            )
-            icon != null -> Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp),
-            )
+            dotColor != null ->
+                Box(
+                    modifier =
+                        Modifier
+                            .size(12.dp)
+                            .background(dotColor, CircleShape),
+                )
+            icon != null ->
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
         }
         Text(
             text = label,

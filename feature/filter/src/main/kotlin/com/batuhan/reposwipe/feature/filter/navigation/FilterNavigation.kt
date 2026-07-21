@@ -6,8 +6,8 @@ import com.batuhan.reposwipe.feature.filter.FilterScreen
 
 const val FILTER_ROUTE = "filter"
 
-fun NavGraphBuilder.filterScreen() {
+fun NavGraphBuilder.filterScreen(onClose: () -> Unit) {
     composable(FILTER_ROUTE) {
-        FilterScreen()
+        FilterScreen(onClose = onClose)
     }
 }

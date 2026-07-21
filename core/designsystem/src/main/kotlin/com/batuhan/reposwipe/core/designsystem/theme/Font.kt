@@ -14,30 +14,31 @@ import com.batuhan.reposwipe.core.designsystem.R
  * Each entry below pins one static instance via [FontVariation] so [FontWeight] selection
  * in [TextStyle]s resolves to the correct rendered weight.
  */
-val ManropeFontFamily = FontFamily(
-    Font(
-        resId = R.font.manrope,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
-    ),
-    Font(
-        resId = R.font.manrope,
-        weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
-    ),
-    Font(
-        resId = R.font.manrope,
-        weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
-    ),
-    Font(
-        resId = R.font.manrope,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
-    ),
-    Font(
-        resId = R.font.manrope,
-        weight = FontWeight.ExtraBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(800)),
-    ),
-)
+val ManropeFontFamily =
+    FontFamily(
+        Font(
+            resId = R.font.manrope,
+            weight = FontWeight.Normal,
+            variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+        ),
+        Font(
+            resId = R.font.manrope,
+            weight = FontWeight.Medium,
+            variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+        ),
+        Font(
+            resId = R.font.manrope,
+            weight = FontWeight.SemiBold,
+            variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+        ),
+        Font(
+            resId = R.font.manrope,
+            weight = FontWeight.Bold,
+            variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+        ),
+        Font(
+            resId = R.font.manrope,
+            weight = FontWeight.ExtraBold,
+            variationSettings = FontVariation.Settings(FontVariation.weight(800)),
+        ),
+    )

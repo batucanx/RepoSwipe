@@ -40,9 +40,10 @@ fun AuthScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = RepoSwipeTheme.spacing.xl),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = RepoSwipeTheme.spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -90,10 +91,11 @@ private fun AwaitingUserContent(state: DeviceFlowUiState.AwaitingUser) {
 
     Text(
         text = state.userCode,
-        style = RepoSwipeTheme.typography.displayLg.copy(
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 4.sp,
-        ),
+        style =
+            RepoSwipeTheme.typography.displayLg.copy(
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 4.sp,
+            ),
         color = MaterialTheme.colorScheme.onSurface,
     )
 
@@ -126,7 +128,10 @@ private fun AwaitingUserContent(state: DeviceFlowUiState.AwaitingUser) {
 }
 
 @Composable
-private fun ErrorContent(state: DeviceFlowUiState.Error, onRetry: () -> Unit) {
+private fun ErrorContent(
+    state: DeviceFlowUiState.Error,
+    onRetry: () -> Unit,
+) {
     Text(
         text = state.message,
         style = RepoSwipeTheme.typography.bodyLg,

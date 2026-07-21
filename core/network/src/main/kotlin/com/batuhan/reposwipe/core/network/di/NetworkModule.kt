@@ -4,6 +4,7 @@ import com.batuhan.reposwipe.core.network.ApiVersionInterceptor
 import com.batuhan.reposwipe.core.network.AuthInterceptor
 import com.batuhan.reposwipe.core.network.GitHubApiConstants
 import com.batuhan.reposwipe.core.network.GitHubApiService
+import com.batuhan.reposwipe.core.network.RateLimitInterceptor
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -22,29 +23,35 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
     /** Shared across all GitHub JSON parsing (device flow + REST API), which is snake_case. */
     @Provides
     @Singleton
-    fun provideJson(): Json = Json {
-        ignoreUnknownKeys = true
-        namingStrategy = JsonNamingStrategy.SnakeCase
-    }
+    fun provideJson(): Json =
+        Json {
+            ignoreUnknownKeys = true
+            namingStrategy = JsonNamingStrategy.SnakeCase
+        }
 
     @Provides
     @Singleton
     fun provideOkHttpClient(
         apiVersionInterceptor: ApiVersionInterceptor,
         authInterceptor: AuthInterceptor,
-    ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(apiVersionInterceptor)
-        .addInterceptor(authInterceptor)
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
-        .build()
+        rateLimitInterceptor: RateLimitInterceptor,
+    ): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(apiVersionInterceptor)
+            .addInterceptor(authInterceptor)
+            .addInterceptor(rateLimitInterceptor)
+            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+            .build()
 
     @Provides
     @Singleton
-    fun provideGitHubRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit =
+    fun provideGitHubRetrofit(
+        okHttpClient: OkHttpClient,
+        json: Json,
+    ): Retrofit =
         Retrofit.Builder()
             .baseUrl(GitHubApiConstants.BASE_URL)
             .client(okHttpClient)
@@ -53,6 +60,5 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideGitHubApiService(retrofit: Retrofit): GitHubApiService =
-        retrofit.create(GitHubApiService::class.java)
+    fun provideGitHubApiService(retrofit: Retrofit): GitHubApiService = retrofit.create(GitHubApiService::class.java)
 }

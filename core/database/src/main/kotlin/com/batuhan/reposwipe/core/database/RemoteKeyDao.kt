@@ -7,7 +7,6 @@ import androidx.room.Query
 
 @Dao
 interface RemoteKeyDao {
-
     @Query("SELECT * FROM repo_remote_keys WHERE repoId = :repoId")
     suspend fun remoteKeyByRepoId(repoId: Long): RemoteKeyEntity?
 

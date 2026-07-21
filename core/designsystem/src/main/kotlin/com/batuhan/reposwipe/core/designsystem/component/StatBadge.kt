@@ -28,10 +28,11 @@ fun StatBadge(
 ) {
     val shape = RoundedCornerShape(percent = 50)
     Row(
-        modifier = modifier
-            .background(containerColor, shape)
-            .border(1.dp, Color.White.copy(alpha = 0.1f), shape)
-            .padding(horizontal = RepoSwipeTheme.spacing.sm, vertical = 4.dp),
+        modifier =
+            modifier
+                .background(containerColor, shape)
+                .border(1.dp, Color.White.copy(alpha = 0.1f), shape)
+                .padding(horizontal = RepoSwipeTheme.spacing.sm, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
     ) {

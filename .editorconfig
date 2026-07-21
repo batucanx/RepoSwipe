@@ -1,0 +1,12 @@
+root = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 130
+insert_final_newline = true
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Leading-underscore MutableStateFlow backing properties (_foo / foo) are standard Android
+# ViewModel convention; ktlint's backing-property heuristic only recognizes the pair when a
+# public property of the exact matching name also exists, which isn't always the case here
+# (e.g. a private _fetchState combined into a differently-named public uiState).
+ktlint_standard_property-naming = disabled

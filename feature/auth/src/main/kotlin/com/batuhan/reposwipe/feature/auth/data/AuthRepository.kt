@@ -8,27 +8,34 @@ import javax.inject.Inject
 
 interface AuthRepository {
     val isAuthenticated: Flow<Boolean>
+
     suspend fun requestDeviceCode(): DeviceCodeResponse
+
     suspend fun pollAccessToken(deviceCode: String): AccessTokenResponse
+
     suspend fun saveToken(token: String)
+
     suspend fun signOut()
 }
 
-class AuthRepositoryImpl @Inject constructor(
-    private val api: GitHubDeviceFlowApi,
-    private val tokenDataStore: TokenDataStore,
-) : AuthRepository {
+class AuthRepositoryImpl
+    @Inject
+    constructor(
+        private val api: GitHubDeviceFlowApi,
+        private val tokenDataStore: TokenDataStore,
+    ) : AuthRepository {
+        override val isAuthenticated: Flow<Boolean> =
+            tokenDataStore.accessToken.map { !it.isNullOrBlank() }
 
-    override val isAuthenticated: Flow<Boolean> =
-        tokenDataStore.accessToken.map { !it.isNullOrBlank() }
+        override suspend fun requestDeviceCode(): DeviceCodeResponse =
+            api.requestDeviceCode(
+                clientId = BuildConfig.GITHUB_CLIENT_ID,
+            )
 
-    override suspend fun requestDeviceCode(): DeviceCodeResponse =
-        api.requestDeviceCode(clientId = BuildConfig.GITHUB_CLIENT_ID)
+        override suspend fun pollAccessToken(deviceCode: String): AccessTokenResponse =
+            api.requestAccessToken(clientId = BuildConfig.GITHUB_CLIENT_ID, deviceCode = deviceCode)
 
-    override suspend fun pollAccessToken(deviceCode: String): AccessTokenResponse =
-        api.requestAccessToken(clientId = BuildConfig.GITHUB_CLIENT_ID, deviceCode = deviceCode)
+        override suspend fun saveToken(token: String) = tokenDataStore.saveAccessToken(token)
 
-    override suspend fun saveToken(token: String) = tokenDataStore.saveAccessToken(token)
-
-    override suspend fun signOut() = tokenDataStore.clearAccessToken()
-}
+        override suspend fun signOut() = tokenDataStore.clearAccessToken()
+    }

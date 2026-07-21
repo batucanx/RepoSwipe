@@ -4,11 +4,14 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [RepoEntity::class, RemoteKeyEntity::class],
-    version = 1,
+    entities = [RepoEntity::class, RemoteKeyEntity::class, StarOutboxEntity::class],
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun repoDao(): RepoDao
+
     abstract fun remoteKeyDao(): RemoteKeyDao
+
+    abstract fun starOutboxDao(): StarOutboxDao
 }

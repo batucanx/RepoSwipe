@@ -39,14 +39,15 @@ fun RepoSwipeNavHost() {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val showBottomBar = currentRoute in MAIN_TAB_ROUTES
 
-    val bottomNavItems = remember {
-        listOf(
-            RepoSwipeNavItem(SWIPE_ROUTE, "Discover", RepoSwipeIcons.Discover),
-            RepoSwipeNavItem(LEADERBOARD_ROUTE, "Trending", RepoSwipeIcons.Trending),
-            RepoSwipeNavItem(STARRED_ROUTE, "Starred", RepoSwipeIcons.Star),
-            RepoSwipeNavItem(PROFILE_ROUTE, "Profile", RepoSwipeIcons.Profile),
-        )
-    }
+    val bottomNavItems =
+        remember {
+            listOf(
+                RepoSwipeNavItem(SWIPE_ROUTE, "Discover", RepoSwipeIcons.Discover),
+                RepoSwipeNavItem(LEADERBOARD_ROUTE, "Trending", RepoSwipeIcons.Trending),
+                RepoSwipeNavItem(STARRED_ROUTE, "Starred", RepoSwipeIcons.Star),
+                RepoSwipeNavItem(PROFILE_ROUTE, "Profile", RepoSwipeIcons.Profile),
+            )
+        }
 
     Scaffold(
         bottomBar = {
@@ -80,8 +81,14 @@ fun RepoSwipeNavHost() {
             swipeScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
             leaderboardScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
             starredScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
-            profileScreen()
-            filterScreen()
+            profileScreen(
+                onSignedOut = {
+                    navController.navigate(AUTH_ROUTE) {
+                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    }
+                },
+            )
+            filterScreen(onClose = { navController.popBackStack() })
         }
     }
 }

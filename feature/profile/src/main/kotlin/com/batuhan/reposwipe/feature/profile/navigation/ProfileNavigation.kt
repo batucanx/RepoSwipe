@@ -6,8 +6,8 @@ import com.batuhan.reposwipe.feature.profile.ProfileScreen
 
 const val PROFILE_ROUTE = "profile"
 
-fun NavGraphBuilder.profileScreen() {
+fun NavGraphBuilder.profileScreen(onSignedOut: () -> Unit) {
     composable(PROFILE_ROUTE) {
-        ProfileScreen()
+        ProfileScreen(onSignedOut = onSignedOut)
     }
 }

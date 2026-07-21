@@ -8,7 +8,6 @@ import androidx.room.Query
 
 @Dao
 interface RepoDao {
-
     @Query("SELECT * FROM repos ORDER BY starCount DESC")
     fun pagingSource(): PagingSource<Int, RepoEntity>
 

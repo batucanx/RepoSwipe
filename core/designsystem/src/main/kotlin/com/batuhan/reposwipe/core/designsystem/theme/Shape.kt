@@ -11,18 +11,20 @@ import androidx.compose.ui.unit.dp
  * theme-invariant. The `full` (pill) token has no direct M3 [Shapes] slot; components
  * that need it use `RoundedCornerShape(percent = 50)` directly.
  */
-val RepoSwipeDarkShapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(24.dp),
-)
+val RepoSwipeDarkShapes =
+    Shapes(
+        extraSmall = RoundedCornerShape(4.dp),
+        small = RoundedCornerShape(8.dp),
+        medium = RoundedCornerShape(12.dp),
+        large = RoundedCornerShape(16.dp),
+        extraLarge = RoundedCornerShape(24.dp),
+    )
 
-val RepoSwipeLightShapes = Shapes(
-    extraSmall = RoundedCornerShape(2.dp),
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(6.dp),
-    large = RoundedCornerShape(8.dp),
-    extraLarge = RoundedCornerShape(12.dp),
-)
+val RepoSwipeLightShapes =
+    Shapes(
+        extraSmall = RoundedCornerShape(2.dp),
+        small = RoundedCornerShape(4.dp),
+        medium = RoundedCornerShape(6.dp),
+        large = RoundedCornerShape(8.dp),
+        extraLarge = RoundedCornerShape(12.dp),
+    )

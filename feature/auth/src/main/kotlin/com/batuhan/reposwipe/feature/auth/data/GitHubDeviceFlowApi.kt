@@ -7,7 +7,6 @@ import retrofit2.http.POST
 
 /** https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow */
 interface GitHubDeviceFlowApi {
-
     @FormUrlEncoded
     @Headers("Accept: application/json")
     @POST("login/device/code")

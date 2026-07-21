@@ -11,14 +11,15 @@ plugins {
 
 // GitHub OAuth App Client ID for the Device Flow — never committed. Add a line
 // `github.clientId=xxxxxxxxxxxxxxxxxxxx` to the (gitignored) root local.properties.
-val githubClientId: String = run {
-    val properties = Properties()
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { properties.load(it) }
+val githubClientId: String =
+    run {
+        val properties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { properties.load(it) }
+        }
+        properties.getProperty("github.clientId", "")
     }
-    properties.getProperty("github.clientId", "")
-}
 
 android {
     namespace = "com.batuhan.reposwipe.feature.auth"

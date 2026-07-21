@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:name=".RepoSwipeApp"
@@ -6,6 +7,24 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.RepoSwipe">
+
+        <!-- Sentry is initialized manually in RepoSwipeApp.onCreate() (DSN comes from BuildConfig,
+             not the manifest) — without this, the SDK's own auto-init ContentProvider runs first
+             looking for an io.sentry.dsn meta-data tag and crashes with "DSN is required". -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
+
+        <!-- Default WorkManager init is replaced with the Hilt-provided Configuration
+             (RepoSwipeApp implements Configuration.Provider) so StarSyncWorker gets its deps. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <activity
             android:name=".MainActivity"

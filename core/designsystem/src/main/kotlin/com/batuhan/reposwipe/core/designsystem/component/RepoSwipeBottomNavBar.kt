@@ -33,31 +33,35 @@ fun RepoSwipeBottomNavBar(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f))
-            .padding(horizontal = RepoSwipeTheme.spacing.gutter, vertical = RepoSwipeTheme.spacing.xs),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f))
+                .padding(horizontal = RepoSwipeTheme.spacing.gutter, vertical = RepoSwipeTheme.spacing.xs),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items.forEach { item ->
             val selected = item.route == currentRoute
-            val contentColor = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSecondaryContainer
-            }
-            val backgroundColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-            } else {
-                Color.Transparent
-            }
+            val contentColor =
+                if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            val backgroundColor =
+                if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                } else {
+                    Color.Transparent
+                }
 
             Column(
-                modifier = Modifier
-                    .background(backgroundColor, RoundedCornerShape(12.dp))
-                    .clickable { onItemClick(item) }
-                    .padding(horizontal = RepoSwipeTheme.spacing.md, vertical = RepoSwipeTheme.spacing.base),
+                modifier =
+                    Modifier
+                        .background(backgroundColor, RoundedCornerShape(12.dp))
+                        .clickable { onItemClick(item) }
+                        .padding(horizontal = RepoSwipeTheme.spacing.md, vertical = RepoSwipeTheme.spacing.base),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(imageVector = item.icon, contentDescription = item.label, tint = contentColor)

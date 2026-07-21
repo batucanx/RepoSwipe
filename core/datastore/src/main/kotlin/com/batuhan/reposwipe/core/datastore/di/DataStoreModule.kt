@@ -2,8 +2,8 @@ package com.batuhan.reposwipe.core.datastore.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.batuhan.reposwipe.core.common.auth.TokenProvider
 import com.batuhan.reposwipe.core.datastore.TokenDataStore
@@ -20,7 +20,9 @@ import javax.inject.Singleton
 object DataStoreModule {
     @Provides
     @Singleton
-    fun provideAuthPreferencesDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+    fun provideAuthPreferencesDataStore(
+        @ApplicationContext context: Context,
+    ): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             produceFile = { context.preferencesDataStoreFile("auth_prefs") },
         )

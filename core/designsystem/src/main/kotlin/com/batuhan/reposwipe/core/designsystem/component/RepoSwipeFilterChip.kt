@@ -34,36 +34,41 @@ fun RepoSwipeFilterChip(
     leadingDotColor: Color? = null,
 ) {
     val shape = RoundedCornerShape(percent = 50)
-    val containerColor = when {
-        selected && !outlined -> MaterialTheme.colorScheme.primaryContainer
-        selected && outlined -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh
-    }
-    val contentColor = when {
-        selected && !outlined -> MaterialTheme.colorScheme.onPrimaryContainer
-        selected && outlined -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val borderColor = when {
-        selected && outlined -> MaterialTheme.colorScheme.primary
-        selected -> Color.Transparent
-        else -> MaterialTheme.colorScheme.outlineVariant
-    }
+    val containerColor =
+        when {
+            selected && !outlined -> MaterialTheme.colorScheme.primaryContainer
+            selected && outlined -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+            else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        }
+    val contentColor =
+        when {
+            selected && !outlined -> MaterialTheme.colorScheme.onPrimaryContainer
+            selected && outlined -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val borderColor =
+        when {
+            selected && outlined -> MaterialTheme.colorScheme.primary
+            selected -> Color.Transparent
+            else -> MaterialTheme.colorScheme.outlineVariant
+        }
 
     Row(
-        modifier = modifier
-            .background(containerColor, shape)
-            .border(1.dp, borderColor, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = RepoSwipeTheme.spacing.md, vertical = RepoSwipeTheme.spacing.xs),
+        modifier =
+            modifier
+                .background(containerColor, shape)
+                .border(1.dp, borderColor, shape)
+                .clickable(onClick = onClick)
+                .padding(horizontal = RepoSwipeTheme.spacing.md, vertical = RepoSwipeTheme.spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
     ) {
         if (leadingDotColor != null) {
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(leadingDotColor, CircleShape),
+                modifier =
+                    Modifier
+                        .size(8.dp)
+                        .background(leadingDotColor, CircleShape),
             )
         }
         Text(text = label, style = RepoSwipeTheme.typography.labelMd, color = contentColor)

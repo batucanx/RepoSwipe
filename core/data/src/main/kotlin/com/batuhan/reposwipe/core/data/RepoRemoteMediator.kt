@@ -23,22 +23,27 @@ class RepoRemoteMediator(
     private val api: GitHubApiService,
     private val database: AppDatabase,
 ) : RemoteMediator<Int, RepoEntity>() {
-
     private val repoDao = database.repoDao()
     private val remoteKeyDao = database.remoteKeyDao()
 
-    override suspend fun load(loadType: LoadType, state: PagingState<Int, RepoEntity>): MediatorResult {
-        val page = when (loadType) {
-            LoadType.REFRESH -> 1
-            LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
-            LoadType.APPEND -> {
-                val lastItem = state.lastItemOrNull()
-                    ?: return MediatorResult.Success(endOfPaginationReached = true)
-                val remoteKey = remoteKeyDao.remoteKeyByRepoId(lastItem.id)
-                    ?: return MediatorResult.Success(endOfPaginationReached = true)
-                remoteKey.nextPage ?: return MediatorResult.Success(endOfPaginationReached = true)
+    override suspend fun load(
+        loadType: LoadType,
+        state: PagingState<Int, RepoEntity>,
+    ): MediatorResult {
+        val page =
+            when (loadType) {
+                LoadType.REFRESH -> 1
+                LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
+                LoadType.APPEND -> {
+                    val lastItem =
+                        state.lastItemOrNull()
+                            ?: return MediatorResult.Success(endOfPaginationReached = true)
+                    val remoteKey =
+                        remoteKeyDao.remoteKeyByRepoId(lastItem.id)
+                            ?: return MediatorResult.Success(endOfPaginationReached = true)
+                    remoteKey.nextPage ?: return MediatorResult.Success(endOfPaginationReached = true)
+                }
             }
-        }
 
         return try {
             val pageSize = state.config.pageSize

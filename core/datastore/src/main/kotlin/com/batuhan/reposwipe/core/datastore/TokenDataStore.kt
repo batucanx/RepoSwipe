@@ -12,28 +12,30 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TokenDataStore @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
-    private val cipher: KeystoreTokenCipher,
-) : TokenProvider {
+class TokenDataStore
+    @Inject
+    constructor(
+        private val dataStore: DataStore<Preferences>,
+        private val cipher: KeystoreTokenCipher,
+    ) : TokenProvider {
+        val accessToken: Flow<String?> =
+            dataStore.data.map { preferences ->
+                preferences[Keys.ENCRYPTED_TOKEN]?.let(cipher::decrypt)
+            }
 
-    val accessToken: Flow<String?> = dataStore.data.map { preferences ->
-        preferences[Keys.ENCRYPTED_TOKEN]?.let(cipher::decrypt)
-    }
+        override suspend fun getToken(): String? = accessToken.first()
 
-    override suspend fun getToken(): String? = accessToken.first()
+        suspend fun saveAccessToken(token: String) {
+            dataStore.edit { preferences ->
+                preferences[Keys.ENCRYPTED_TOKEN] = cipher.encrypt(token)
+            }
+        }
 
-    suspend fun saveAccessToken(token: String) {
-        dataStore.edit { preferences ->
-            preferences[Keys.ENCRYPTED_TOKEN] = cipher.encrypt(token)
+        suspend fun clearAccessToken() {
+            dataStore.edit { preferences -> preferences.remove(Keys.ENCRYPTED_TOKEN) }
+        }
+
+        private object Keys {
+            val ENCRYPTED_TOKEN = stringPreferencesKey("encrypted_access_token")
         }
     }
-
-    suspend fun clearAccessToken() {
-        dataStore.edit { preferences -> preferences.remove(Keys.ENCRYPTED_TOKEN) }
-    }
-
-    private object Keys {
-        val ENCRYPTED_TOKEN = stringPreferencesKey("encrypted_access_token")
-    }
-}

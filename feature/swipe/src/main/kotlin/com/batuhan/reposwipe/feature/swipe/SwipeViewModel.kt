@@ -5,8 +5,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.batuhan.reposwipe.core.common.model.SwipeDirection
+import com.batuhan.reposwipe.core.data.DiscoverFilterRepository
+import com.batuhan.reposwipe.core.data.LeaderboardRepository
 import com.batuhan.reposwipe.core.data.RepoRepository
+import com.batuhan.reposwipe.core.data.StarRepository
+import com.batuhan.reposwipe.core.data.model.DiscoverFilters
 import com.batuhan.reposwipe.core.data.model.Repo
+import com.batuhan.reposwipe.core.network.RateLimitInfo
+import com.batuhan.reposwipe.core.network.RateLimitObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -14,42 +20,67 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 val DiscoverLanguages = listOf("TypeScript", "Rust", "Python", "Go")
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class SwipeViewModel @Inject constructor(
-    repoRepository: RepoRepository,
-) : ViewModel() {
+class SwipeViewModel
+    @Inject
+    constructor(
+        repoRepository: RepoRepository,
+        private val starRepository: StarRepository,
+        private val leaderboardRepository: LeaderboardRepository,
+        private val discoverFilterRepository: DiscoverFilterRepository,
+        rateLimitObserver: RateLimitObserver,
+    ) : ViewModel() {
+        val filters: StateFlow<DiscoverFilters> = discoverFilterRepository.filters
 
-    private val _selectedLanguage = MutableStateFlow<String?>(null)
-    val selectedLanguage: StateFlow<String?> = _selectedLanguage.asStateFlow()
+        val repos: Flow<PagingData<Repo>> =
+            filters
+                .flatMapLatest { filters -> repoRepository.searchRepos(filters) }
+                .cachedIn(viewModelScope)
 
-    val repos: Flow<PagingData<Repo>> = _selectedLanguage
-        .flatMapLatest { language -> repoRepository.searchRepos(language) }
-        .cachedIn(viewModelScope)
+        /**
+         * The swipe deck's "cursor" into the paged results — swiping advances it, rewinding steps
+         * it back. Undo is just decrementing this: Paging keeps already-loaded pages cached, so the
+         * previous repo is still there to show again. It does not un-queue an already-enqueued star.
+         */
+        private val _currentIndex = MutableStateFlow(0)
+        val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
 
-    /**
-     * The swipe deck's "cursor" into the paged results — swiping advances it, rewinding steps
-     * it back. Undo is just decrementing this: Paging keeps already-loaded pages cached, so the
-     * previous repo is still there to show again.
-     */
-    private val _currentIndex = MutableStateFlow(0)
-    val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
+        val rateLimit: StateFlow<RateLimitInfo?> = rateLimitObserver.state
 
-    fun selectLanguage(language: String) {
-        _selectedLanguage.value = if (_selectedLanguage.value == language) null else language
-        _currentIndex.value = 0
+        init {
+            // Any filter change (from this screen's quick-chip row or the full Filter screen)
+            // invalidates the current swipe position — the underlying result set just changed.
+            filters.onEach { _currentIndex.value = 0 }.launchIn(viewModelScope)
+        }
+
+        fun toggleLanguage(language: String) {
+            discoverFilterRepository.toggleLanguage(language)
+        }
+
+        fun onSwiped(
+            repo: Repo,
+            direction: SwipeDirection,
+        ) {
+            _currentIndex.value += 1
+            if (direction == SwipeDirection.Right) {
+                viewModelScope.launch {
+                    starRepository.starRepo(repo.ownerLogin, repo.name)
+                }
+                viewModelScope.launch {
+                    runCatching { leaderboardRepository.recordSwipe(repo) }
+                }
+            }
+        }
+
+        fun onRewind() {
+            _currentIndex.value = (_currentIndex.value - 1).coerceAtLeast(0)
+        }
     }
-
-    fun onSwiped(direction: SwipeDirection) {
-        _currentIndex.value += 1
-        // Faz 5: direction == SwipeDirection.Right triggers the actual GitHub star request.
-    }
-
-    fun onRewind() {
-        _currentIndex.value = (_currentIndex.value - 1).coerceAtLeast(0)
-    }
-}
