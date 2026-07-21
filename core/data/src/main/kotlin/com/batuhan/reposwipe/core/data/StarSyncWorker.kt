@@ -1,6 +1,7 @@
 package com.batuhan.reposwipe.core.data
 
 import android.content.Context
+import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -28,7 +29,6 @@ class StarSyncWorker
         private val outboxDao: StarOutboxDao,
         private val api: GitHubApiService,
     ) : CoroutineWorker(context, params) {
-        @Suppress("SwallowedException") // offline — retried by WorkManager's backoff, see class doc
         override suspend fun doWork(): Result {
             val pending = outboxDao.getAll()
 
@@ -42,10 +42,13 @@ class StarSyncWorker
                     delay(REQUEST_SPACING_MS)
                 } catch (e: HttpException) {
                     if (e.code() == 403 || e.code() == 429) {
+                        Log.w(TAG, "Rate limited, retrying later", e)
                         return Result.retry()
                     }
+                    Log.w(TAG, "Dropping outbox entry ${entry.id} after non-retryable error", e)
                     outboxDao.remove(entry.id)
                 } catch (e: IOException) {
+                    Log.w(TAG, "Offline, retrying later", e)
                     return Result.retry()
                 }
             }
@@ -54,6 +57,7 @@ class StarSyncWorker
         }
 
         private companion object {
+            const val TAG = "StarSyncWorker"
             const val REQUEST_SPACING_MS = 1_000L
         }
     }

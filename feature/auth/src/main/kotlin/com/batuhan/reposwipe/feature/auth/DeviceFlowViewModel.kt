@@ -1,5 +1,6 @@
 package com.batuhan.reposwipe.feature.auth
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.batuhan.reposwipe.feature.auth.data.AuthRepository
@@ -28,7 +29,7 @@ class DeviceFlowViewModel
 
         fun retry() = startDeviceFlow()
 
-        @Suppress("SwallowedException", "TooGenericExceptionCaught") // translated into a user-facing error state below
+        @Suppress("TooGenericExceptionCaught") // translated into a user-facing error state below
         private fun startDeviceFlow() {
             _uiState.value = DeviceFlowUiState.Loading
             viewModelScope.launch {
@@ -44,9 +45,11 @@ class DeviceFlowViewModel
                     try {
                         authRepository.requestDeviceCode()
                     } catch (e: IOException) {
+                        Log.w(TAG, "requestDeviceCode failed", e)
                         _uiState.value = DeviceFlowUiState.Error("İnternet bağlantını kontrol et.")
                         return@launch
                     } catch (e: Exception) {
+                        Log.w(TAG, "requestDeviceCode failed", e)
                         _uiState.value = DeviceFlowUiState.Error(e.message ?: "Bilinmeyen bir hata oluştu.")
                         return@launch
                     }
@@ -54,7 +57,6 @@ class DeviceFlowViewModel
             }
         }
 
-        @Suppress("SwallowedException") // transient network blip — kept polling, see comment below
         private suspend fun pollForToken(deviceCode: DeviceCodeResponse) {
             _uiState.value =
                 DeviceFlowUiState.AwaitingUser(
@@ -75,6 +77,7 @@ class DeviceFlowViewModel
                         // Transient network blip (DNS hiccup, emulator losing connectivity while the
                         // browser had focus, ...). GitHub-side authorization may already be done, so
                         // keep polling instead of failing the whole flow on a single dropped request.
+                        Log.w(TAG, "pollAccessToken failed, retrying", e)
                         continue
                     }
 
@@ -108,6 +111,7 @@ class DeviceFlowViewModel
         }
 
         private companion object {
+            const val TAG = "DeviceFlowViewModel"
             const val SLOW_DOWN_STEP_SECONDS = 5
         }
     }
