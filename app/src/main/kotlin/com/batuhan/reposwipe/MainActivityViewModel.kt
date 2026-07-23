@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.batuhan.reposwipe.core.common.theme.ThemeMode
 import com.batuhan.reposwipe.core.datastore.ThemePreferencesDataStore
+import com.batuhan.reposwipe.core.network.NetworkMonitor
 import com.batuhan.reposwipe.feature.auth.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,6 +33,7 @@ class MainActivityViewModel
     constructor(
         authRepository: AuthRepository,
         themePreferencesDataStore: ThemePreferencesDataStore,
+        networkMonitor: NetworkMonitor,
     ) : ViewModel() {
         val uiState: StateFlow<MainActivityUiState> =
             authRepository.isAuthenticated
@@ -48,5 +50,15 @@ class MainActivityViewModel
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
                     initialValue = ThemeMode.SYSTEM,
+                )
+
+        // Optimistic initial value: avoids flashing the offline banner for the brief moment
+        // before the first NetworkCallback fires on cold start.
+        val isOnline: StateFlow<Boolean> =
+            networkMonitor.isOnline
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = true,
                 )
     }

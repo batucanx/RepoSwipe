@@ -24,8 +24,10 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.WifiOff
 
 /** Central mapping from the mockups' Material Symbols glyph names to Compose Material Icons. */
 object RepoSwipeIcons {
@@ -55,4 +57,6 @@ object RepoSwipeIcons {
     val Leaderboard = Icons.Outlined.Leaderboard
     val Close = Icons.Outlined.Close
     val ApplyFilled = Icons.Filled.CheckCircle
+    val Share = Icons.Outlined.Share
+    val Offline = Icons.Outlined.WifiOff
 }

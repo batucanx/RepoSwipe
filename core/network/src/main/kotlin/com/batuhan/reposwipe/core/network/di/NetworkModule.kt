@@ -3,10 +3,13 @@ package com.batuhan.reposwipe.core.network.di
 import com.batuhan.reposwipe.core.network.ApiVersionInterceptor
 import com.batuhan.reposwipe.core.network.AuthInterceptor
 import com.batuhan.reposwipe.core.network.BuildConfig
+import com.batuhan.reposwipe.core.network.ConnectivityNetworkMonitor
 import com.batuhan.reposwipe.core.network.GitHubApiConstants
 import com.batuhan.reposwipe.core.network.GitHubApiService
+import com.batuhan.reposwipe.core.network.NetworkMonitor
 import com.batuhan.reposwipe.core.network.RateLimitInterceptor
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -74,4 +77,11 @@ object NetworkModule {
     fun provideGitHubApiService(retrofit: Retrofit): GitHubApiService = retrofit.create(GitHubApiService::class.java)
 
     private const val TIMEOUT_SECONDS = 30L
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class NetworkBindsModule {
+    @Binds
+    abstract fun bindNetworkMonitor(impl: ConnectivityNetworkMonitor): NetworkMonitor
 }

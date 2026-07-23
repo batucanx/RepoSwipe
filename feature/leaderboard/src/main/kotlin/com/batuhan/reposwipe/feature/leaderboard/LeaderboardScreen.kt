@@ -23,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -76,49 +77,54 @@ fun LeaderboardScreen(
                     )
                 }
             else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(RepoSwipeTheme.spacing.gutter),
-                    verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = viewModel::refresh,
                 ) {
-                    item { LeaderboardHeader() }
+                    LazyColumn(
+                        contentPadding = PaddingValues(RepoSwipeTheme.spacing.gutter),
+                        verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+                    ) {
+                        item { LeaderboardHeader() }
 
-                    if (uiState.entries.isEmpty()) {
-                        item {
-                            EmptyState(
-                                icon = RepoSwipeIcons.Leaderboard,
-                                title = stringResource(R.string.leaderboard_empty_title),
-                                message = stringResource(R.string.leaderboard_empty_message),
-                            )
-                        }
-                    } else {
-                        itemsIndexed(uiState.entries, key = { _, entry -> entry.repoId }) { index, entry ->
-                            LeaderboardRow(
-                                rank = index + 1,
-                                entry = entry,
-                                onOpenGitHub = {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(entry.htmlUrl)))
-                                },
-                            )
-                        }
-
-                        if (uiState.hasMore) {
+                        if (uiState.entries.isEmpty()) {
                             item {
-                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                    if (uiState.isLoadingMore) {
-                                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                                    } else {
-                                        Button(
-                                            onClick = viewModel::loadMore,
-                                            shape = MaterialTheme.shapes.extraLarge,
-                                            colors =
-                                                ButtonDefaults.buttonColors(
-                                                    containerColor = MaterialTheme.colorScheme.primary,
-                                                ),
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.leaderboard_load_more),
-                                                style = RepoSwipeTheme.typography.headlineMd,
-                                            )
+                                EmptyState(
+                                    icon = RepoSwipeIcons.Leaderboard,
+                                    title = stringResource(R.string.leaderboard_empty_title),
+                                    message = stringResource(R.string.leaderboard_empty_message),
+                                )
+                            }
+                        } else {
+                            itemsIndexed(uiState.entries, key = { _, entry -> entry.repoId }) { index, entry ->
+                                LeaderboardRow(
+                                    rank = index + 1,
+                                    entry = entry,
+                                    onOpenGitHub = {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(entry.htmlUrl)))
+                                    },
+                                )
+                            }
+
+                            if (uiState.hasMore) {
+                                item {
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        if (uiState.isLoadingMore) {
+                                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                                        } else {
+                                            Button(
+                                                onClick = viewModel::loadMore,
+                                                shape = MaterialTheme.shapes.extraLarge,
+                                                colors =
+                                                    ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.primary,
+                                                    ),
+                                            ) {
+                                                Text(
+                                                    text = stringResource(R.string.leaderboard_load_more),
+                                                    style = RepoSwipeTheme.typography.headlineMd,
+                                                )
+                                            }
                                         }
                                     }
                                 }

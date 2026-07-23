@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
                     ThemeMode.LIGHT -> false
                     ThemeMode.DARK -> true
                 }
+            val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
             RepoSwipeTheme(darkTheme = darkTheme) {
                 when (val state = viewModel.uiState.collectAsStateWithLifecycle().value) {
                     MainActivityUiState.Loading -> Unit
@@ -49,6 +50,7 @@ class MainActivity : ComponentActivity() {
                         RepoSwipeNavHost(
                             startDestination = startDestination,
                             isAuthenticated = state.isAuthenticated,
+                            isOnline = isOnline,
                         )
                     }
                 }

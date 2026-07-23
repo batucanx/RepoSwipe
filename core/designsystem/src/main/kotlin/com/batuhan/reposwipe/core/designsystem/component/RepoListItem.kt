@@ -44,6 +44,7 @@ fun RepoListItem(
     data: RepoListItemData,
     onToggleStar: () -> Unit,
     onOpenGitHub: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = MaterialTheme.shapes.large
@@ -76,17 +77,26 @@ fun RepoListItem(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            IconButton(onClick = onToggleStar) {
-                Icon(
-                    imageVector = if (data.isStarred) RepoSwipeIcons.StarFilled else RepoSwipeIcons.Star,
-                    contentDescription =
-                        if (data.isStarred) {
-                            stringResource(R.string.repo_list_item_unstar_cd)
-                        } else {
-                            stringResource(R.string.repo_list_item_star_cd)
-                        },
-                    tint = MaterialTheme.colorScheme.tertiary,
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onShare) {
+                    Icon(
+                        imageVector = RepoSwipeIcons.Share,
+                        contentDescription = stringResource(R.string.repo_list_item_share_cd),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onToggleStar) {
+                    Icon(
+                        imageVector = if (data.isStarred) RepoSwipeIcons.StarFilled else RepoSwipeIcons.Star,
+                        contentDescription =
+                            if (data.isStarred) {
+                                stringResource(R.string.repo_list_item_unstar_cd)
+                            } else {
+                                stringResource(R.string.repo_list_item_star_cd)
+                            },
+                        tint = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
             }
         }
 

@@ -15,6 +15,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.batuhan.reposwipe.core.common.format.toCompactCount
+import com.batuhan.reposwipe.core.common.share.shareRepoIntent
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.designsystem.component.EmptyState
 import com.batuhan.reposwipe.core.designsystem.component.RepoListItem
@@ -67,70 +69,76 @@ fun StarredScreen(
                     )
                 }
             else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(RepoSwipeTheme.spacing.gutter),
-                    verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = viewModel::refresh,
                 ) {
-                    item {
-                        UserProfileHeader(
-                            avatarUrl = uiState.user?.avatarUrl,
-                            displayName = uiState.user?.name ?: uiState.user?.login.orEmpty(),
-                            username = uiState.user?.login.orEmpty(),
-                            statValue = uiState.loadedCount.toString(),
-                            statLabel = stringResource(R.string.starred_stat_label),
-                        )
-                    }
-
-                    item {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
-                            item {
-                                RepoSwipeFilterChip(
-                                    label = stringResource(R.string.starred_all_repos_chip),
-                                    selected = selectedLanguage == null,
-                                    onClick = { viewModel.selectLanguage(null) },
-                                )
-                            }
-                            items(uiState.availableLanguages) { language ->
-                                RepoSwipeFilterChip(
-                                    label = language,
-                                    selected = language == selectedLanguage,
-                                    onClick = { viewModel.selectLanguage(language) },
-                                )
-                            }
-                        }
-                    }
-
-                    if (uiState.repos.isEmpty()) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(RepoSwipeTheme.spacing.gutter),
+                        verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+                    ) {
                         item {
-                            EmptyState(
-                                icon = RepoSwipeIcons.Star,
-                                title = stringResource(R.string.starred_empty_title),
-                                message = stringResource(R.string.starred_empty_message),
-                            )
-                        }
-                    } else {
-                        items(uiState.repos, key = { it.id }) { repo ->
-                            RepoListItem(
-                                data = repo.toListItemData(),
-                                onToggleStar = { viewModel.unstar(repo) },
-                                onOpenGitHub = {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repo.htmlUrl)))
-                                },
+                            UserProfileHeader(
+                                avatarUrl = uiState.user?.avatarUrl,
+                                displayName = uiState.user?.name ?: uiState.user?.login.orEmpty(),
+                                username = uiState.user?.login.orEmpty(),
+                                statValue = uiState.loadedCount.toString(),
+                                statLabel = stringResource(R.string.starred_stat_label),
                             )
                         }
 
-                        if (uiState.hasMore) {
+                        item {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
+                                item {
+                                    RepoSwipeFilterChip(
+                                        label = stringResource(R.string.starred_all_repos_chip),
+                                        selected = selectedLanguage == null,
+                                        onClick = { viewModel.selectLanguage(null) },
+                                    )
+                                }
+                                items(uiState.availableLanguages) { language ->
+                                    RepoSwipeFilterChip(
+                                        label = language,
+                                        selected = language == selectedLanguage,
+                                        onClick = { viewModel.selectLanguage(language) },
+                                    )
+                                }
+                            }
+                        }
+
+                        if (uiState.repos.isEmpty()) {
                             item {
-                                if (uiState.isLoadingMore) {
-                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                                    }
-                                } else {
-                                    OutlinedButton(
-                                        onClick = viewModel::loadMore,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    ) {
-                                        Text(stringResource(R.string.starred_load_more))
+                                EmptyState(
+                                    icon = RepoSwipeIcons.Star,
+                                    title = stringResource(R.string.starred_empty_title),
+                                    message = stringResource(R.string.starred_empty_message),
+                                )
+                            }
+                        } else {
+                            items(uiState.repos, key = { it.id }) { repo ->
+                                RepoListItem(
+                                    data = repo.toListItemData(),
+                                    onToggleStar = { viewModel.unstar(repo) },
+                                    onOpenGitHub = {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repo.htmlUrl)))
+                                    },
+                                    onShare = { context.startActivity(shareRepoIntent(repo.htmlUrl)) },
+                                )
+                            }
+
+                            if (uiState.hasMore) {
+                                item {
+                                    if (uiState.isLoadingMore) {
+                                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                                        }
+                                    } else {
+                                        OutlinedButton(
+                                            onClick = viewModel::loadMore,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text(stringResource(R.string.starred_load_more))
+                                        }
                                     }
                                 }
                             }

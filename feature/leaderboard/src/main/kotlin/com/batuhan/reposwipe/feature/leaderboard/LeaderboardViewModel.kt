@@ -22,10 +22,12 @@ class LeaderboardViewModel
         val uiState: StateFlow<LeaderboardUiState> = _uiState.asStateFlow()
 
         init {
-            refresh()
+            load(showFullScreenLoading = true)
         }
 
-        fun retry() = refresh()
+        fun retry() = load(showFullScreenLoading = true)
+
+        fun refresh() = load(showFullScreenLoading = false)
 
         fun loadMore() {
             val state = _uiState.value
@@ -45,14 +47,21 @@ class LeaderboardViewModel
             }
         }
 
-        private fun refresh() {
+        private fun load(showFullScreenLoading: Boolean) {
             viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true, error = null) }
+                _uiState.update {
+                    if (showFullScreenLoading) {
+                        it.copy(isLoading = true, error = null)
+                    } else {
+                        it.copy(isRefreshing = true, error = null)
+                    }
+                }
                 val result = runCatching { leaderboardRepository.getLeaderboardPage(reset = true) }
                 val entries = result.getOrDefault(emptyList())
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         entries = entries,
                         hasMore = entries.size >= LeaderboardRepository.PAGE_SIZE,
                         error = if (result.isFailure) UiText.Resource(R.string.leaderboard_error_message) else null,

@@ -6,6 +6,7 @@ import com.batuhan.reposwipe.core.data.model.User
 
 data class StarredUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: UiText? = null,
     val user: User? = null,

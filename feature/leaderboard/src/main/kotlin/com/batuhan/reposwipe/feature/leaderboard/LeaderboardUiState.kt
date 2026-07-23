@@ -5,6 +5,7 @@ import com.batuhan.reposwipe.core.data.model.LeaderboardEntry
 
 data class LeaderboardUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: UiText? = null,
     val entries: List<LeaderboardEntry> = emptyList(),

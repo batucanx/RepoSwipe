@@ -6,4 +6,7 @@
     <string name="repo_list_item_unstar_cd">Remove star</string>
     <string name="repo_list_item_star_cd">Add star</string>
     <string name="repo_list_item_view_on_github">View on GitHub</string>
+    <string name="repo_list_item_share_cd">Share</string>
+
+    <string name="offline_banner_message">No internet connection</string>
 </resources>

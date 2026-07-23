@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ import com.batuhan.reposwipe.core.common.format.toClockTimeLabel
 import com.batuhan.reposwipe.core.common.format.toCompactCount
 import com.batuhan.reposwipe.core.common.format.toRelativeTimeLabel
 import com.batuhan.reposwipe.core.common.model.SwipeDirection
+import com.batuhan.reposwipe.core.common.share.shareRepoIntent
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.designsystem.component.EmptyState
 import com.batuhan.reposwipe.core.designsystem.component.RepoCard
@@ -316,20 +318,28 @@ private fun RepoDetailSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Button(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repo.htmlUrl))) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-            ) {
-                Text(text = stringResource(R.string.swipe_detail_view_on_github))
-                Icon(
-                    imageVector = RepoSwipeIcons.OpenExternal,
-                    contentDescription = null,
-                    modifier =
-                        Modifier
-                            .padding(start = RepoSwipeTheme.spacing.base)
-                            .size(16.dp),
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
+                Button(
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repo.htmlUrl))) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                ) {
+                    Text(text = stringResource(R.string.swipe_detail_view_on_github))
+                    Icon(
+                        imageVector = RepoSwipeIcons.OpenExternal,
+                        contentDescription = null,
+                        modifier =
+                            Modifier
+                                .padding(start = RepoSwipeTheme.spacing.base)
+                                .size(16.dp),
+                    )
+                }
+                OutlinedButton(onClick = { context.startActivity(shareRepoIntent(repo.htmlUrl)) }) {
+                    Icon(
+                        imageVector = RepoSwipeIcons.Share,
+                        contentDescription = stringResource(R.string.swipe_detail_share_cd),
+                    )
+                }
             }
         }
     }

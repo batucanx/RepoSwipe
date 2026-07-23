@@ -21,6 +21,7 @@ import javax.inject.Inject
 
 private data class FetchState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: UiText? = null,
     val user: User? = null,
@@ -51,6 +52,7 @@ class StarredViewModel
                 val notUnstarred = fetch.serverRepos.filterNot { "${it.ownerLogin}/${it.name}" in pendingUnstars }
                 StarredUiState(
                     isLoading = fetch.isLoading,
+                    isRefreshing = fetch.isRefreshing,
                     isLoadingMore = fetch.isLoadingMore,
                     error = fetch.error,
                     user = fetch.user,
@@ -62,10 +64,12 @@ class StarredViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StarredUiState())
 
         init {
-            refresh()
+            load(showFullScreenLoading = true)
         }
 
-        fun retry() = refresh()
+        fun retry() = load(showFullScreenLoading = true)
+
+        fun refresh() = load(showFullScreenLoading = false)
 
         fun selectLanguage(language: String?) {
             _selectedLanguage.value = language
@@ -97,14 +101,21 @@ class StarredViewModel
             }
         }
 
-        private fun refresh() {
+        private fun load(showFullScreenLoading: Boolean) {
             viewModelScope.launch {
-                _fetchState.update { it.copy(isLoading = true, error = null) }
+                _fetchState.update {
+                    if (showFullScreenLoading) {
+                        it.copy(isLoading = true, error = null)
+                    } else {
+                        it.copy(isRefreshing = true, error = null)
+                    }
+                }
                 val userResult = runCatching { userRepository.getCurrentUser() }
                 val reposResult = runCatching { starredReposRepository.getStarredReposPage(page = 1) }
                 _fetchState.update {
                     it.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         user = userResult.getOrNull(),
                         serverRepos = reposResult.getOrDefault(emptyList()),
                         hasMore = reposResult.getOrDefault(emptyList()).size >= PAGE_SIZE,

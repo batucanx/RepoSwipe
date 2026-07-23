@@ -1,5 +1,6 @@
 package com.batuhan.reposwipe.navigation
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -15,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.batuhan.reposwipe.R
+import com.batuhan.reposwipe.core.designsystem.component.OfflineBanner
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeBottomNavBar
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeNavItem
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
@@ -45,6 +47,7 @@ private val MAIN_TAB_ROUTES = setOf(SWIPE_ROUTE, LEADERBOARD_ROUTE, STARRED_ROUT
 fun RepoSwipeNavHost(
     startDestination: String,
     isAuthenticated: Boolean,
+    isOnline: Boolean,
 ) {
     val navController = rememberNavController()
     val currentRoute =
@@ -98,38 +101,43 @@ fun RepoSwipeNavHost(
             }
         },
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding),
-        ) {
-            authScreen(
-                onAuthenticated = {
-                    navController.navigate(SWIPE_ROUTE) {
-                        popUpTo(AUTH_ROUTE) { inclusive = true }
-                    }
-                },
-            )
-            swipeScreen(
-                onFiltersClick = { navController.navigate(FILTER_ROUTE) },
-                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
-            )
-            leaderboardScreen(
-                onFiltersClick = { navController.navigate(FILTER_ROUTE) },
-                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
-            )
-            starredScreen(
-                onFiltersClick = { navController.navigate(FILTER_ROUTE) },
-                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
-            )
-            profileScreen(
-                // Navigation on sign-out is handled reactively above via isAuthenticated,
-                // uniformly with server-side session invalidation (401s).
-                onSignedOut = {},
-                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
-            )
-            filterScreen(onClose = { navController.popBackStack() })
-            settingsScreen(onClose = { navController.popBackStack() })
+        Column(modifier = Modifier.padding(innerPadding)) {
+            if (!isOnline) {
+                OfflineBanner()
+            }
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.weight(1f),
+            ) {
+                authScreen(
+                    onAuthenticated = {
+                        navController.navigate(SWIPE_ROUTE) {
+                            popUpTo(AUTH_ROUTE) { inclusive = true }
+                        }
+                    },
+                )
+                swipeScreen(
+                    onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                    onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+                )
+                leaderboardScreen(
+                    onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                    onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+                )
+                starredScreen(
+                    onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                    onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+                )
+                profileScreen(
+                    // Navigation on sign-out is handled reactively above via isAuthenticated,
+                    // uniformly with server-side session invalidation (401s).
+                    onSignedOut = {},
+                    onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+                )
+                filterScreen(onClose = { navController.popBackStack() })
+                settingsScreen(onClose = { navController.popBackStack() })
+            }
         }
     }
 }
