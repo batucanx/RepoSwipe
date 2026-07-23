@@ -6,8 +6,11 @@ import com.batuhan.reposwipe.feature.swipe.SwipeScreen
 
 const val SWIPE_ROUTE = "swipe"
 
-fun NavGraphBuilder.swipeScreen(onFiltersClick: () -> Unit) {
+fun NavGraphBuilder.swipeScreen(
+    onFiltersClick: () -> Unit,
+    onMenuClick: () -> Unit,
+) {
     composable(SWIPE_ROUTE) {
-        SwipeScreen(onFiltersClick = onFiltersClick)
+        SwipeScreen(onFiltersClick = onFiltersClick, onMenuClick = onMenuClick)
     }
 }

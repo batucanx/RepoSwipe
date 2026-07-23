@@ -39,6 +39,7 @@ import com.batuhan.reposwipe.core.designsystem.theme.languageColor
 @Composable
 fun StarredScreen(
     onFiltersClick: () -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StarredViewModel = hiltViewModel(),
 ) {
@@ -47,7 +48,7 @@ fun StarredScreen(
     val context = LocalContext.current
 
     Column(modifier = modifier.fillMaxSize()) {
-        RepoSwipeTopAppBar(onMenuClick = {}, onFiltersClick = onFiltersClick)
+        RepoSwipeTopAppBar(onMenuClick = onMenuClick, onFiltersClick = onFiltersClick)
 
         when {
             uiState.isLoading ->

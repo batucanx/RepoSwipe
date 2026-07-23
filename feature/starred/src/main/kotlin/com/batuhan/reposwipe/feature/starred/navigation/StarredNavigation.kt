@@ -6,8 +6,11 @@ import com.batuhan.reposwipe.feature.starred.StarredScreen
 
 const val STARRED_ROUTE = "starred"
 
-fun NavGraphBuilder.starredScreen(onFiltersClick: () -> Unit) {
+fun NavGraphBuilder.starredScreen(
+    onFiltersClick: () -> Unit,
+    onMenuClick: () -> Unit,
+) {
     composable(STARRED_ROUTE) {
-        StarredScreen(onFiltersClick = onFiltersClick)
+        StarredScreen(onFiltersClick = onFiltersClick, onMenuClick = onMenuClick)
     }
 }

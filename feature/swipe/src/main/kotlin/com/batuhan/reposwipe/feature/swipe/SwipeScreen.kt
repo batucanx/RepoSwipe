@@ -1,5 +1,8 @@
 package com.batuhan.reposwipe.feature.swipe
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,16 +12,30 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -45,6 +62,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SwipeScreen(
     onFiltersClick: () -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SwipeViewModel = hiltViewModel(),
 ) {
@@ -52,9 +70,10 @@ fun SwipeScreen(
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
     val rateLimit by viewModel.rateLimit.collectAsStateWithLifecycle()
+    var repoForDetail by remember { mutableStateOf<Repo?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RepoSwipeTopAppBar(onMenuClick = {}, onFiltersClick = onFiltersClick)
+        RepoSwipeTopAppBar(onMenuClick = onMenuClick, onFiltersClick = onFiltersClick)
 
         LazyRow(
             contentPadding =
@@ -128,11 +147,16 @@ fun SwipeScreen(
                             repos = visibleRepos,
                             onSwiped = { repo, direction -> viewModel.onSwiped(repo, direction) },
                             onRewind = viewModel::onRewind,
+                            onQuickView = { repoForDetail = it },
                         )
                     }
                 }
             }
         }
+    }
+
+    repoForDetail?.let { repo ->
+        RepoDetailSheet(repo = repo, onDismiss = { repoForDetail = null })
     }
 }
 
@@ -141,9 +165,11 @@ private fun SwipeDeckContent(
     repos: List<Repo>,
     onSwiped: (Repo, SwipeDirection) -> Unit,
     onRewind: () -> Unit,
+    onQuickView: (Repo) -> Unit,
 ) {
     val deckState = rememberSwipeDeckState()
     val coroutineScope = rememberCoroutineScope()
+    val frontRepo = repos.firstOrNull()
 
     Column(
         modifier =
@@ -202,8 +228,7 @@ private fun SwipeDeckContent(
             SwipeActionButton(
                 icon = RepoSwipeIcons.QuickView,
                 contentDescription = stringResource(R.string.swipe_action_quick_view_cd),
-                // reserved for a future repo-detail sheet
-                onClick = {},
+                onClick = { frontRepo?.let(onQuickView) },
             )
         }
     }
@@ -229,3 +254,106 @@ private fun Repo.toCardData(updatedAtLabel: String): RepoCardData =
         languageName = language,
         languageColor = languageColor(language),
     )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RepoDetailSheet(
+    repo: Repo,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = RepoSwipeTheme.spacing.gutter)
+                    .padding(bottom = RepoSwipeTheme.spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+        ) {
+            Text(
+                text = "${repo.ownerLogin}/${repo.name}",
+                style = RepoSwipeTheme.typography.headlineMd,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = repo.description,
+                style = RepoSwipeTheme.typography.bodySm,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val language = repo.language
+                if (language != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(10.dp)
+                                    .background(languageColor(language) ?: MaterialTheme.colorScheme.outline, CircleShape),
+                        )
+                        Text(
+                            text = language,
+                            style = RepoSwipeTheme.typography.labelMd,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                DetailStat(icon = RepoSwipeIcons.Star, value = repo.starCount.toCompactCount())
+                DetailStat(icon = RepoSwipeIcons.Fork, value = repo.forkCount.toCompactCount())
+            }
+
+            Text(
+                text = stringResource(R.string.swipe_updated_at, repo.updatedAt.toRelativeTimeLabel()),
+                style = RepoSwipeTheme.typography.labelMd,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Button(
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repo.htmlUrl))) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            ) {
+                Text(text = stringResource(R.string.swipe_detail_view_on_github))
+                Icon(
+                    imageVector = RepoSwipeIcons.OpenExternal,
+                    contentDescription = null,
+                    modifier =
+                        Modifier
+                            .padding(start = RepoSwipeTheme.spacing.base)
+                            .size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailStat(
+    icon: ImageVector,
+    value: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            text = value,
+            style = RepoSwipeTheme.typography.labelMd,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}

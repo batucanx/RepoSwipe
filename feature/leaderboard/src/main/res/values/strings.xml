@@ -5,7 +5,7 @@
     <string name="leaderboard_empty_title">Bugün henüz kimse star vermemiş</string>
     <string name="leaderboard_empty_message">İlk sen ol — Discover\'da bir repoyu sağa kaydır.</string>
     <string name="leaderboard_load_more">Daha Fazla Yükle</string>
-    <string name="leaderboard_global_rankings">GLOBAL RANKINGS</string>
+    <string name="leaderboard_global_rankings">IN-APP RANKINGS</string>
     <string name="leaderboard_title">Today\'s Top Swipes</string>
-    <string name="leaderboard_subtitle">The most starred repositories across the ecosystem in the last 24 hours. Updated in real-time.</string>
+    <string name="leaderboard_subtitle">The most-starred repositories among RepoSwipe users today. Updated in real-time.</string>
 </resources>

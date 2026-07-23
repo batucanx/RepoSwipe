@@ -94,6 +94,8 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:common"))
+    implementation(project(":core:datastore"))
 
     implementation(project(":feature:auth"))
     implementation(project(":feature:swipe"))
@@ -101,6 +103,7 @@ dependencies {
     implementation(project(":feature:leaderboard"))
     implementation(project(":feature:starred"))
     implementation(project(":feature:profile"))
+    implementation(project(":feature:settings"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)

@@ -13,4 +13,5 @@
     <string name="swipe_action_rewind_cd">Geri al</string>
     <string name="swipe_action_quick_view_cd">Hızlı bakış</string>
     <string name="swipe_updated_at">Updated %1$s</string>
+    <string name="swipe_detail_view_on_github">View on GitHub</string>
 </resources>

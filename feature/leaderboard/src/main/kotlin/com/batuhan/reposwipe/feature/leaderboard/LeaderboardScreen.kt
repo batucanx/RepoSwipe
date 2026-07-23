@@ -49,6 +49,7 @@ private val RankGradient = Brush.linearGradient(listOf(Color(0xFF0969DA), Color(
 @Composable
 fun LeaderboardScreen(
     onFiltersClick: () -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LeaderboardViewModel = hiltViewModel(),
 ) {
@@ -56,7 +57,7 @@ fun LeaderboardScreen(
     val context = LocalContext.current
 
     Column(modifier = modifier.fillMaxSize()) {
-        RepoSwipeTopAppBar(onMenuClick = {}, onFiltersClick = onFiltersClick)
+        RepoSwipeTopAppBar(onMenuClick = onMenuClick, onFiltersClick = onFiltersClick)
 
         when {
             uiState.isLoading ->

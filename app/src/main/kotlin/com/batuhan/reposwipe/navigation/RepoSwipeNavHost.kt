@@ -26,6 +26,8 @@ import com.batuhan.reposwipe.feature.leaderboard.navigation.LEADERBOARD_ROUTE
 import com.batuhan.reposwipe.feature.leaderboard.navigation.leaderboardScreen
 import com.batuhan.reposwipe.feature.profile.navigation.PROFILE_ROUTE
 import com.batuhan.reposwipe.feature.profile.navigation.profileScreen
+import com.batuhan.reposwipe.feature.settings.navigation.SETTINGS_ROUTE
+import com.batuhan.reposwipe.feature.settings.navigation.settingsScreen
 import com.batuhan.reposwipe.feature.starred.navigation.STARRED_ROUTE
 import com.batuhan.reposwipe.feature.starred.navigation.starredScreen
 import com.batuhan.reposwipe.feature.swipe.navigation.SWIPE_ROUTE
@@ -108,15 +110,26 @@ fun RepoSwipeNavHost(
                     }
                 },
             )
-            swipeScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
-            leaderboardScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
-            starredScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
+            swipeScreen(
+                onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+            )
+            leaderboardScreen(
+                onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+            )
+            starredScreen(
+                onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+            )
             profileScreen(
                 // Navigation on sign-out is handled reactively above via isAuthenticated,
                 // uniformly with server-side session invalidation (401s).
                 onSignedOut = {},
+                onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
             )
             filterScreen(onClose = { navController.popBackStack() })
+            settingsScreen(onClose = { navController.popBackStack() })
         }
     }
 }

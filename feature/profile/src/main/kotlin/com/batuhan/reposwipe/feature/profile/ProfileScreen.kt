@@ -38,6 +38,7 @@ import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 @Composable
 fun ProfileScreen(
     onSignedOut: () -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
@@ -48,7 +49,7 @@ fun ProfileScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RepoSwipeTopAppBar(onMenuClick = {}, onFiltersClick = {}, title = stringResource(R.string.profile_top_bar_title))
+        RepoSwipeTopAppBar(onMenuClick = onMenuClick, onFiltersClick = {}, title = stringResource(R.string.profile_top_bar_title))
 
         when {
             uiState.isLoading ->

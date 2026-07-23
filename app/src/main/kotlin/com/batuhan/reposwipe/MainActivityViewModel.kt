@@ -2,6 +2,8 @@ package com.batuhan.reposwipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.batuhan.reposwipe.core.common.theme.ThemeMode
+import com.batuhan.reposwipe.core.datastore.ThemePreferencesDataStore
 import com.batuhan.reposwipe.feature.auth.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +31,7 @@ class MainActivityViewModel
     @Inject
     constructor(
         authRepository: AuthRepository,
+        themePreferencesDataStore: ThemePreferencesDataStore,
     ) : ViewModel() {
         val uiState: StateFlow<MainActivityUiState> =
             authRepository.isAuthenticated
@@ -37,5 +40,13 @@ class MainActivityViewModel
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
                     initialValue = MainActivityUiState.Loading,
+                )
+
+        val themeMode: StateFlow<ThemeMode> =
+            themePreferencesDataStore.themeMode
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = ThemeMode.SYSTEM,
                 )
     }
