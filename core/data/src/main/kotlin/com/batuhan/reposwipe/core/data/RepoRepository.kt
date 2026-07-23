@@ -1,5 +1,6 @@
 package com.batuhan.reposwipe.core.data
 
+import androidx.annotation.VisibleForTesting
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -41,7 +42,8 @@ class RepoRepositoryImpl
          * "Trending Today" is a different, unrelated thing — our own Firestore swipe-activity
          * aggregate, added in a later phase.
          */
-        private fun buildQuery(filters: DiscoverFilters): String {
+        @VisibleForTesting
+        internal fun buildQuery(filters: DiscoverFilters): String {
             val sinceDate = LocalDate.now().minusMonths(6)
             val minStars = maxOf(MIN_STARS_FLOOR, filters.minStars)
             val parts = mutableListOf("created:>$sinceDate", "stars:>=$minStars")
@@ -59,7 +61,8 @@ class RepoRepositoryImpl
             return parts.joinToString(" ")
         }
 
-        private companion object {
+        @VisibleForTesting
+        internal companion object {
             const val PAGE_SIZE = 20
             const val MIN_STARS_FLOOR = 50
             const val RECENT_DAYS = 7L

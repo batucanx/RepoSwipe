@@ -6,6 +6,7 @@ import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.core.data.UserRepository
 import com.batuhan.reposwipe.core.datastore.TokenDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,7 @@ class ProfileViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, error = null) }
                 val result = runCatching { userRepository.getCurrentUser() }
+                result.exceptionOrNull()?.let { Sentry.captureException(it) }
                 _uiState.update {
                     it.copy(
                         isLoading = false,

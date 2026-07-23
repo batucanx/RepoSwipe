@@ -14,6 +14,7 @@ import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.network.RateLimitInfo
 import com.batuhan.reposwipe.core.network.RateLimitObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,7 +73,10 @@ class SwipeViewModel
             _currentIndex.value += 1
             if (direction == SwipeDirection.Right) {
                 viewModelScope.launch {
+                    // A failure here means the star silently didn't persist — worth knowing about,
+                    // unlike the best-effort leaderboard aggregate below.
                     runCatching { starRepository.starRepo(repo.ownerLogin, repo.name) }
+                        .onFailure { Sentry.captureException(it) }
                 }
                 viewModelScope.launch {
                     runCatching { leaderboardRepository.recordSwipe(repo) }

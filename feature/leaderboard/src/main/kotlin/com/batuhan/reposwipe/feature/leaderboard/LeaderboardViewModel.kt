@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.core.data.LeaderboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +58,7 @@ class LeaderboardViewModel
                     }
                 }
                 val result = runCatching { leaderboardRepository.getLeaderboardPage(reset = true) }
+                result.exceptionOrNull()?.let { Sentry.captureException(it) }
                 val entries = result.getOrDefault(emptyList())
                 _uiState.update {
                     it.copy(

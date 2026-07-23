@@ -9,6 +9,7 @@ import com.batuhan.reposwipe.core.data.UserRepository
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.data.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -112,6 +113,8 @@ class StarredViewModel
                 }
                 val userResult = runCatching { userRepository.getCurrentUser() }
                 val reposResult = runCatching { starredReposRepository.getStarredReposPage(page = 1) }
+                userResult.exceptionOrNull()?.let { Sentry.captureException(it) }
+                reposResult.exceptionOrNull()?.let { Sentry.captureException(it) }
                 _fetchState.update {
                     it.copy(
                         isLoading = false,

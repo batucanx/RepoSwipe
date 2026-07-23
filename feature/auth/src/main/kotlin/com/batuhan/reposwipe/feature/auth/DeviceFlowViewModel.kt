@@ -7,6 +7,7 @@ import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.feature.auth.data.AuthRepository
 import com.batuhan.reposwipe.feature.auth.data.DeviceCodeResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,7 @@ class DeviceFlowViewModel
                         return@launch
                     } catch (e: Exception) {
                         Log.w(TAG, "requestDeviceCode failed", e)
+                        Sentry.captureException(e)
                         val message = e.message?.let { UiText.Dynamic(it) } ?: UiText.Resource(R.string.auth_error_unknown)
                         _uiState.value = DeviceFlowUiState.Error(message)
                         return@launch
