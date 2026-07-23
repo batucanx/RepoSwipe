@@ -21,6 +21,17 @@ val sentryDsn: String =
         properties.getProperty("sentry.dsn", "")
     }
 
+// Release signing — keystore.properties (gitignored) and the .keystore file it points to are
+// never committed. Without it, `assembleRelease`/`bundleRelease` fall back to no signing config
+// at all (an unsigned, uninstallable release build) rather than silently signing with debug keys.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties =
+    Properties().apply {
+        if (keystorePropertiesFile.exists()) {
+            keystorePropertiesFile.inputStream().use { load(it) }
+        }
+    }
+
 android {
     namespace = "com.batuhan.reposwipe"
     compileSdk = 35
@@ -36,13 +47,28 @@ android {
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -77,7 +103,9 @@ dependencies {
     implementation(project(":feature:profile"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
 

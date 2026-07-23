@@ -3,12 +3,18 @@ package com.batuhan.reposwipe.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.batuhan.reposwipe.R
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeBottomNavBar
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeNavItem
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
@@ -34,18 +40,42 @@ private val MAIN_TAB_ROUTES = setOf(SWIPE_ROUTE, LEADERBOARD_ROUTE, STARRED_ROUT
  * bottom bar" pattern.
  */
 @Composable
-fun RepoSwipeNavHost() {
+fun RepoSwipeNavHost(
+    startDestination: String,
+    isAuthenticated: Boolean,
+) {
     val navController = rememberNavController()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentRoute =
+        navController
+            .currentBackStackEntryAsState()
+            .value
+            ?.destination
+            ?.route
     val showBottomBar = currentRoute in MAIN_TAB_ROUTES
 
+    // isAuthenticated flips to false if the token is revoked/expires mid-session (AuthInterceptor
+    // clears it on a 401) or the user signs out from Profile — either way, drop them back to auth.
+    var wasAuthenticated by remember { mutableStateOf(isAuthenticated) }
+    LaunchedEffect(isAuthenticated) {
+        if (wasAuthenticated && !isAuthenticated) {
+            navController.navigate(AUTH_ROUTE) {
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+            }
+        }
+        wasAuthenticated = isAuthenticated
+    }
+
+    val discoverLabel = stringResource(R.string.nav_discover)
+    val trendingLabel = stringResource(R.string.nav_trending)
+    val starredLabel = stringResource(R.string.nav_starred)
+    val profileLabel = stringResource(R.string.nav_profile)
     val bottomNavItems =
-        remember {
+        remember(discoverLabel, trendingLabel, starredLabel, profileLabel) {
             listOf(
-                RepoSwipeNavItem(SWIPE_ROUTE, "Discover", RepoSwipeIcons.Discover),
-                RepoSwipeNavItem(LEADERBOARD_ROUTE, "Trending", RepoSwipeIcons.Trending),
-                RepoSwipeNavItem(STARRED_ROUTE, "Starred", RepoSwipeIcons.Star),
-                RepoSwipeNavItem(PROFILE_ROUTE, "Profile", RepoSwipeIcons.Profile),
+                RepoSwipeNavItem(SWIPE_ROUTE, discoverLabel, RepoSwipeIcons.Discover),
+                RepoSwipeNavItem(LEADERBOARD_ROUTE, trendingLabel, RepoSwipeIcons.Trending),
+                RepoSwipeNavItem(STARRED_ROUTE, starredLabel, RepoSwipeIcons.Star),
+                RepoSwipeNavItem(PROFILE_ROUTE, profileLabel, RepoSwipeIcons.Profile),
             )
         }
 
@@ -68,7 +98,7 @@ fun RepoSwipeNavHost() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AUTH_ROUTE,
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
         ) {
             authScreen(
@@ -82,11 +112,9 @@ fun RepoSwipeNavHost() {
             leaderboardScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
             starredScreen(onFiltersClick = { navController.navigate(FILTER_ROUTE) })
             profileScreen(
-                onSignedOut = {
-                    navController.navigate(AUTH_ROUTE) {
-                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
-                    }
-                },
+                // Navigation on sign-out is handled reactively above via isAuthenticated,
+                // uniformly with server-side session invalidation (401s).
+                onSignedOut = {},
             )
             filterScreen(onClose = { navController.popBackStack() })
         }

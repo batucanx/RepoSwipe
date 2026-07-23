@@ -21,7 +21,8 @@ object DatabaseModule {
     fun provideAppDatabase(
         @ApplicationContext context: Context,
     ): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "reposwipe.db")
+        Room
+            .databaseBuilder(context, AppDatabase::class.java, "reposwipe.db")
             // No shipped users/data yet — revisit with real Migrations before a public release.
             .fallbackToDestructiveMigration()
             .build()

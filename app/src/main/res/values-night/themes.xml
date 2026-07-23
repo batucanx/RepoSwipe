@@ -2,4 +2,9 @@
     <style name="Theme.RepoSwipe" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
+
+    <style name="Theme.RepoSwipe.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FF10131A</item>
+        <item name="postSplashScreenTheme">@style/Theme.RepoSwipe</item>
+    </style>
 </resources>

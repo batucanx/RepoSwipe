@@ -7,4 +7,6 @@ package com.batuhan.reposwipe.core.common.auth
  */
 interface TokenProvider {
     suspend fun getToken(): String?
+
+    suspend fun clearToken()
 }

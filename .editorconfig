@@ -10,3 +10,4 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # public property of the exact matching name also exists, which isn't always the case here
 # (e.g. a private _fetchState combined into a differently-named public uiState).
 ktlint_standard_property-naming = disabled
+ktlint_standard_backing-property-naming = disabled

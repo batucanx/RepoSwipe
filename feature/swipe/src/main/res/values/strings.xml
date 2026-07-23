@@ -1,0 +1,16 @@
+<resources>
+    <string name="swipe_rate_limit_title">GitHub API sınırına ulaşıldı</string>
+    <string name="swipe_rate_limit_message">%1$s civarında tekrar dene.</string>
+    <string name="swipe_repos_error_title">Repolar yüklenemedi</string>
+    <string name="swipe_repos_error_message">Bağlantını kontrol et ve tekrar dene.</string>
+    <string name="swipe_action_retry">Tekrar Dene</string>
+    <string name="swipe_no_results_title">Sonuç bulunamadı</string>
+    <string name="swipe_no_results_message">Bu kritere uyan repo yok — farklı bir dil dene.</string>
+    <string name="swipe_all_seen_title">Hepsini gördün!</string>
+    <string name="swipe_all_seen_message">Bu dildeki tüm repoları kaydırdın — farklı bir dil dene.</string>
+    <string name="swipe_action_pass">Pas geç</string>
+    <string name="swipe_action_star">Star ver</string>
+    <string name="swipe_action_rewind_cd">Geri al</string>
+    <string name="swipe_action_quick_view_cd">Hızlı bakış</string>
+    <string name="swipe_updated_at">Updated %1$s</string>
+</resources>

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,6 +40,7 @@ import com.batuhan.reposwipe.core.data.model.LeaderboardEntry
 import com.batuhan.reposwipe.core.designsystem.component.EmptyState
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeTopAppBar
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
+import com.batuhan.reposwipe.core.designsystem.text.asString
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import com.batuhan.reposwipe.core.designsystem.theme.languageColor
 
@@ -65,10 +67,10 @@ fun LeaderboardScreen(
                 FullScreenState {
                     EmptyState(
                         icon = RepoSwipeIcons.Error,
-                        title = "Sıralama yüklenemedi",
-                        message = uiState.error.orEmpty(),
+                        title = stringResource(R.string.leaderboard_error_title),
+                        message = uiState.error?.asString().orEmpty(),
                         iconTint = MaterialTheme.colorScheme.error,
-                        actionLabel = "Tekrar Dene",
+                        actionLabel = stringResource(R.string.leaderboard_action_retry),
                         onAction = viewModel::retry,
                     )
                 }
@@ -83,8 +85,8 @@ fun LeaderboardScreen(
                         item {
                             EmptyState(
                                 icon = RepoSwipeIcons.Leaderboard,
-                                title = "Bugün henüz kimse star vermemiş",
-                                message = "İlk sen ol — Discover'da bir repoyu sağa kaydır.",
+                                title = stringResource(R.string.leaderboard_empty_title),
+                                message = stringResource(R.string.leaderboard_empty_message),
                             )
                         }
                     } else {
@@ -113,7 +115,7 @@ fun LeaderboardScreen(
                                                 ),
                                         ) {
                                             Text(
-                                                text = "Daha Fazla Yükle",
+                                                text = stringResource(R.string.leaderboard_load_more),
                                                 style = RepoSwipeTheme.typography.headlineMd,
                                             )
                                         }
@@ -149,18 +151,18 @@ private fun LeaderboardHeader() {
                 modifier = Modifier.size(16.dp),
             )
             Text(
-                text = "GLOBAL RANKINGS",
+                text = stringResource(R.string.leaderboard_global_rankings),
                 style = RepoSwipeTheme.typography.labelMd,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
         Text(
-            text = "Today's Top Swipes",
+            text = stringResource(R.string.leaderboard_title),
             style = RepoSwipeTheme.typography.displayLg,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "The most starred repositories across the ecosystem in the last 24 hours. Updated in real-time.",
+            text = stringResource(R.string.leaderboard_subtitle),
             style = RepoSwipeTheme.typography.bodySm,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

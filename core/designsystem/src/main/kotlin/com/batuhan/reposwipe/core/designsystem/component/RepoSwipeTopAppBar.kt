@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.batuhan.reposwipe.core.designsystem.R
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 
@@ -20,7 +22,7 @@ fun RepoSwipeTopAppBar(
     onMenuClick: () -> Unit,
     onFiltersClick: () -> Unit,
     modifier: Modifier = Modifier,
-    title: String = "RepoSwipe",
+    title: String = stringResource(R.string.topbar_title_default),
 ) {
     Row(
         modifier =
@@ -34,7 +36,7 @@ fun RepoSwipeTopAppBar(
         IconButton(onClick = onMenuClick) {
             Icon(
                 imageVector = RepoSwipeIcons.Menu,
-                contentDescription = "Menü",
+                contentDescription = stringResource(R.string.topbar_menu_cd),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
@@ -46,7 +48,7 @@ fun RepoSwipeTopAppBar(
         IconButton(onClick = onFiltersClick) {
             Icon(
                 imageVector = RepoSwipeIcons.Filters,
-                contentDescription = "Filtreler",
+                contentDescription = stringResource(R.string.topbar_filters_cd),
                 tint = MaterialTheme.colorScheme.primary,
             )
         }

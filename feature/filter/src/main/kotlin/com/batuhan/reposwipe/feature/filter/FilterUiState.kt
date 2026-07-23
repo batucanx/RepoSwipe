@@ -2,7 +2,10 @@ package com.batuhan.reposwipe.feature.filter
 
 import com.batuhan.reposwipe.core.data.model.DiscoverFilters
 
-data class FilterTopic(val label: String, val slug: String)
+data class FilterTopic(
+    val label: String,
+    val slug: String,
+)
 
 val AvailableLanguages =
     listOf("JavaScript", "Python", "Rust", "Go", "Java", "TypeScript", "Kotlin", "Swift", "C++", "Ruby")

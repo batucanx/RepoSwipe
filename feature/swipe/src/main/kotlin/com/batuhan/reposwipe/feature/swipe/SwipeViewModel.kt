@@ -72,7 +72,7 @@ class SwipeViewModel
             _currentIndex.value += 1
             if (direction == SwipeDirection.Right) {
                 viewModelScope.launch {
-                    starRepository.starRepo(repo.ownerLogin, repo.name)
+                    runCatching { starRepository.starRepo(repo.ownerLogin, repo.name) }
                 }
                 viewModelScope.launch {
                     runCatching { leaderboardRepository.recordSwipe(repo) }

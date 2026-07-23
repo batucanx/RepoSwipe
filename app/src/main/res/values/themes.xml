@@ -2,4 +2,12 @@
     <style name="Theme.RepoSwipe" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- Shown instantly on cold start while MainActivityViewModel checks the stored GitHub
+         token; kept on screen via setKeepOnScreenCondition until that check resolves, then
+         MainActivity switches the window back to Theme.RepoSwipe. -->
+    <style name="Theme.RepoSwipe.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FFF7F9FF</item>
+        <item name="postSplashScreenTheme">@style/Theme.RepoSwipe</item>
+    </style>
 </resources>

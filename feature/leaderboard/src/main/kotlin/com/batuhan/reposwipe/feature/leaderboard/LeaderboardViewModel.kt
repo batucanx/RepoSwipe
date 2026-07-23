@@ -2,6 +2,7 @@ package com.batuhan.reposwipe.feature.leaderboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.core.data.LeaderboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,7 +55,7 @@ class LeaderboardViewModel
                         isLoading = false,
                         entries = entries,
                         hasMore = entries.size >= LeaderboardRepository.PAGE_SIZE,
-                        error = if (result.isFailure) "Sıralama yüklenemedi." else null,
+                        error = if (result.isFailure) UiText.Resource(R.string.leaderboard_error_message) else null,
                     )
                 }
             }

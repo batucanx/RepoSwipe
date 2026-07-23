@@ -25,6 +25,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,19 +99,19 @@ private fun FilterTopBar(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = RepoSwipeIcons.Close,
-                    contentDescription = "Kapat",
+                    contentDescription = stringResource(R.string.filter_close_cd),
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
             Text(
-                text = "RepoSwipe",
+                text = stringResource(R.string.filter_brand_name),
                 style = RepoSwipeTheme.typography.displaySmMobile,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
         TextButton(onClick = onReset) {
             Text(
-                text = "Reset",
+                text = stringResource(R.string.filter_reset),
                 style = RepoSwipeTheme.typography.labelMd,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -121,12 +123,12 @@ private fun FilterTopBar(
 private fun FilterHeader() {
     Column(verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base)) {
         Text(
-            text = "Refine Discovery",
+            text = stringResource(R.string.filter_header_title),
             style = RepoSwipeTheme.typography.headlineMd,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "Adjust your preferences to find the perfect repositories for your next project.",
+            text = stringResource(R.string.filter_header_subtitle),
             style = RepoSwipeTheme.typography.bodySm,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -139,7 +141,10 @@ private fun LanguagesSection(
     filters: DiscoverFilters,
     onToggleLanguage: (String) -> Unit,
 ) {
-    FilterSection(title = "Programming Languages", trailing = "${filters.languages.size} Selected") {
+    FilterSection(
+        title = stringResource(R.string.filter_section_languages),
+        trailing = stringResource(R.string.filter_selected_count, filters.languages.size),
+    ) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
             AvailableLanguages.forEach { language ->
                 RepoSwipeFilterChip(
@@ -160,7 +165,7 @@ private fun TopicsSection(
     filters: DiscoverFilters,
     onToggleTopic: (String) -> Unit,
 ) {
-    FilterSection(title = "Popular Topics") {
+    FilterSection(title = stringResource(R.string.filter_section_topics)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
             AvailableTopics.forEach { topic ->
                 RepoSwipeFilterChip(
@@ -179,8 +184,13 @@ private fun MinStarsSection(
     filters: DiscoverFilters,
     onMinStarsChange: (Int) -> Unit,
 ) {
-    val starLabel = if (filters.minStars <= MIN_STARS_FLOOR) "Any" else "${filters.minStars.toCompactCount()}+"
-    FilterSection(title = "Minimum Stars", trailing = starLabel) {
+    val starLabel =
+        if (filters.minStars <= MIN_STARS_FLOOR) {
+            stringResource(R.string.filter_stars_any)
+        } else {
+            stringResource(R.string.filter_stars_plus, filters.minStars.toCompactCount())
+        }
+    FilterSection(title = stringResource(R.string.filter_section_min_stars), trailing = starLabel) {
         Column {
             Slider(
                 value = filters.minStars.toFloat(),
@@ -192,7 +202,7 @@ private fun MinStarsSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                listOf("0", "10k", "25k", "50k+").forEach { label ->
+                stringArrayResource(R.array.filter_stars_axis_labels).forEach { label ->
                     Text(
                         text = label,
                         style = RepoSwipeTheme.typography.labelMd,
@@ -209,7 +219,7 @@ private fun RepositoryStatusSection(
     filters: DiscoverFilters,
     onUpdatedRecentlyChange: (Boolean) -> Unit,
 ) {
-    FilterSection(title = "Repository Status") {
+    FilterSection(title = stringResource(R.string.filter_section_repo_status)) {
         Row(
             modifier =
                 Modifier
@@ -220,7 +230,7 @@ private fun RepositoryStatusSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Updated this week",
+                text = stringResource(R.string.filter_updated_this_week),
                 style = RepoSwipeTheme.typography.bodySm,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -237,7 +247,7 @@ private fun ApplyFiltersButton(onClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         ) {
-            Text(text = "Apply Filters", style = RepoSwipeTheme.typography.headlineMd)
+            Text(text = stringResource(R.string.filter_apply), style = RepoSwipeTheme.typography.headlineMd)
             Icon(
                 imageVector = RepoSwipeIcons.ApplyFilled,
                 contentDescription = null,

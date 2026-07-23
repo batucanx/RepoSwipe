@@ -10,6 +10,10 @@ import javax.inject.Inject
  * Attaches the stored GitHub access token, when present. OkHttp interceptors run on a
  * background dispatcher already, so blocking on the (cheap, in-memory-cached-after-first-read)
  * [TokenProvider] suspend call here is safe and is the standard pattern for auth interceptors.
+ *
+ * A 401 means GitHub has rejected the token (revoked by the user, expired, etc.) — it's cleared
+ * immediately so the app doesn't keep retrying with dead credentials, and so anything observing
+ * token/auth state (e.g. the app's nav host) notices and routes back to sign-in.
  */
 class AuthInterceptor
     @Inject
@@ -22,10 +26,16 @@ class AuthInterceptor
                 if (token.isNullOrBlank()) {
                     chain.request()
                 } else {
-                    chain.request().newBuilder()
+                    chain
+                        .request()
+                        .newBuilder()
                         .header("Authorization", "Bearer $token")
                         .build()
                 }
-            return chain.proceed(request)
+            val response = chain.proceed(request)
+            if (response.code == 401 && !token.isNullOrBlank()) {
+                runBlocking { tokenProvider.clearToken() }
+            }
+            return response
         }
     }

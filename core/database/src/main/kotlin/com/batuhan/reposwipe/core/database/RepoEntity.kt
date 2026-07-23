@@ -1,9 +1,10 @@
 package com.batuhan.reposwipe.core.database
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "repos")
+@Entity(tableName = "repos", indices = [Index("starCount")])
 data class RepoEntity(
     @PrimaryKey val id: Long,
     val name: String,

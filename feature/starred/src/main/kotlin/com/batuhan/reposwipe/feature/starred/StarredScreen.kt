@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.batuhan.reposwipe.core.common.format.toCompactCount
@@ -31,6 +32,7 @@ import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeFilterChip
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeTopAppBar
 import com.batuhan.reposwipe.core.designsystem.component.UserProfileHeader
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
+import com.batuhan.reposwipe.core.designsystem.text.asString
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import com.batuhan.reposwipe.core.designsystem.theme.languageColor
 
@@ -56,10 +58,10 @@ fun StarredScreen(
                 FullScreenState {
                     EmptyState(
                         icon = RepoSwipeIcons.Error,
-                        title = "Star'lanan repolar yüklenemedi",
-                        message = uiState.error.orEmpty(),
+                        title = stringResource(R.string.starred_error_title),
+                        message = uiState.error?.asString().orEmpty(),
                         iconTint = MaterialTheme.colorScheme.error,
-                        actionLabel = "Tekrar Dene",
+                        actionLabel = stringResource(R.string.starred_action_retry),
                         onAction = viewModel::retry,
                     )
                 }
@@ -74,7 +76,7 @@ fun StarredScreen(
                             displayName = uiState.user?.name ?: uiState.user?.login.orEmpty(),
                             username = uiState.user?.login.orEmpty(),
                             statValue = uiState.loadedCount.toString(),
-                            statLabel = "STARRED",
+                            statLabel = stringResource(R.string.starred_stat_label),
                         )
                     }
 
@@ -82,7 +84,7 @@ fun StarredScreen(
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
                             item {
                                 RepoSwipeFilterChip(
-                                    label = "All Repos",
+                                    label = stringResource(R.string.starred_all_repos_chip),
                                     selected = selectedLanguage == null,
                                     onClick = { viewModel.selectLanguage(null) },
                                 )
@@ -101,8 +103,8 @@ fun StarredScreen(
                         item {
                             EmptyState(
                                 icon = RepoSwipeIcons.Star,
-                                title = "Henüz star'ladığın repo yok",
-                                message = "Discover'da sağa kaydırdığın repolar burada listelenir.",
+                                title = stringResource(R.string.starred_empty_title),
+                                message = stringResource(R.string.starred_empty_message),
                             )
                         }
                     } else {
@@ -127,7 +129,7 @@ fun StarredScreen(
                                         onClick = viewModel::loadMore,
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
-                                        Text("Daha Fazla Yükle")
+                                        Text(stringResource(R.string.starred_load_more))
                                     }
                                 }
                             }

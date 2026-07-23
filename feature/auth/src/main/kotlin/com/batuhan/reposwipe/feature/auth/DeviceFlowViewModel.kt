@@ -3,6 +3,7 @@ package com.batuhan.reposwipe.feature.auth
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.feature.auth.data.AuthRepository
 import com.batuhan.reposwipe.feature.auth.data.DeviceCodeResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,11 +35,7 @@ class DeviceFlowViewModel
             _uiState.value = DeviceFlowUiState.Loading
             viewModelScope.launch {
                 if (BuildConfig.GITHUB_CLIENT_ID.isBlank()) {
-                    _uiState.value =
-                        DeviceFlowUiState.Error(
-                            "GitHub Client ID tanımlı değil. local.properties dosyasına " +
-                                "github.clientId=... ekleyip projeyi yeniden derle.",
-                        )
+                    _uiState.value = DeviceFlowUiState.Error(UiText.Resource(R.string.auth_error_missing_client_id))
                     return@launch
                 }
                 val deviceCode =
@@ -46,11 +43,12 @@ class DeviceFlowViewModel
                         authRepository.requestDeviceCode()
                     } catch (e: IOException) {
                         Log.w(TAG, "requestDeviceCode failed", e)
-                        _uiState.value = DeviceFlowUiState.Error("İnternet bağlantını kontrol et.")
+                        _uiState.value = DeviceFlowUiState.Error(UiText.Resource(R.string.auth_error_no_internet))
                         return@launch
                     } catch (e: Exception) {
                         Log.w(TAG, "requestDeviceCode failed", e)
-                        _uiState.value = DeviceFlowUiState.Error(e.message ?: "Bilinmeyen bir hata oluştu.")
+                        val message = e.message?.let { UiText.Dynamic(it) } ?: UiText.Resource(R.string.auth_error_unknown)
+                        _uiState.value = DeviceFlowUiState.Error(message)
                         return@launch
                     }
                 pollForToken(deviceCode)
@@ -90,24 +88,24 @@ class DeviceFlowViewModel
                     response.error == "authorization_pending" -> Unit
                     response.error == "slow_down" -> intervalSeconds += SLOW_DOWN_STEP_SECONDS
                     response.error == "expired_token" -> {
-                        _uiState.value = DeviceFlowUiState.Error("Kodun süresi doldu, tekrar dene.")
+                        _uiState.value = DeviceFlowUiState.Error(UiText.Resource(R.string.auth_error_expired))
                         return
                     }
                     response.error == "access_denied" -> {
-                        _uiState.value = DeviceFlowUiState.Error("Giriş reddedildi.")
+                        _uiState.value = DeviceFlowUiState.Error(UiText.Resource(R.string.auth_error_access_denied))
                         return
                     }
                     else -> {
-                        _uiState.value =
-                            DeviceFlowUiState.Error(
-                                response.errorDescription ?: "Bilinmeyen bir hata oluştu.",
-                            )
+                        val message =
+                            response.errorDescription?.let { UiText.Dynamic(it) }
+                                ?: UiText.Resource(R.string.auth_error_unknown)
+                        _uiState.value = DeviceFlowUiState.Error(message)
                         return
                     }
                 }
             }
 
-            _uiState.value = DeviceFlowUiState.Error("Kodun süresi doldu, tekrar dene.")
+            _uiState.value = DeviceFlowUiState.Error(UiText.Resource(R.string.auth_error_expired))
         }
 
         private companion object {

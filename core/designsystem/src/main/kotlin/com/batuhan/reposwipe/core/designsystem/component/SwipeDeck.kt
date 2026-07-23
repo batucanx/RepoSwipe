@@ -182,8 +182,7 @@ fun <T> SwipeDeck(
                                     with(density) { animatedTranslateY.dp.toPx() }
                                 rotationZ = if (isFront) state.offset.value.x / ROTATION_DIVISOR else 0f
                                 alpha = animatedAlpha
-                            }
-                            .then(
+                            }.then(
                                 if (isFront) {
                                     Modifier
                                         .pointerInput(itemKey(item)) {
@@ -205,8 +204,7 @@ fun <T> SwipeDeck(
                                                     coroutineScope.launch { state.onDragEnd(Offset.Zero) }
                                                 },
                                             )
-                                        }
-                                        .semantics {
+                                        }.semantics {
                                             customActions =
                                                 listOf(
                                                     CustomAccessibilityAction(rightActionLabel) {
@@ -248,7 +246,11 @@ fun <T> SwipeDeck(
     }
 }
 
-private data class BackgroundDepth(val scale: Float, val translateYDp: Float, val alpha: Float)
+private data class BackgroundDepth(
+    val scale: Float,
+    val translateYDp: Float,
+    val alpha: Float,
+)
 
 private val FRONT_DEPTH = BackgroundDepth(scale = 1f, translateYDp = 0f, alpha = 1f)
 

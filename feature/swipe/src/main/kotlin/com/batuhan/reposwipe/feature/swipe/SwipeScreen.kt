@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -72,12 +73,17 @@ fun SwipeScreen(
             }
         }
 
-        if (rateLimit?.isExhausted == true) {
+        val currentRateLimit = rateLimit
+        if (currentRateLimit != null && currentRateLimit.isExhausted) {
             FullScreenState {
                 EmptyState(
                     icon = RepoSwipeIcons.RateLimited,
-                    title = "GitHub API sınırına ulaşıldı",
-                    message = "${rateLimit!!.resetEpochSeconds.toClockTimeLabel()} civarında tekrar dene.",
+                    title = stringResource(R.string.swipe_rate_limit_title),
+                    message =
+                        stringResource(
+                            R.string.swipe_rate_limit_message,
+                            currentRateLimit.resetEpochSeconds.toClockTimeLabel(),
+                        ),
                 )
             }
         } else {
@@ -87,10 +93,10 @@ fun SwipeScreen(
                     FullScreenState {
                         EmptyState(
                             icon = RepoSwipeIcons.Error,
-                            title = "Repolar yüklenemedi",
-                            message = "Bağlantını kontrol et ve tekrar dene.",
+                            title = stringResource(R.string.swipe_repos_error_title),
+                            message = stringResource(R.string.swipe_repos_error_message),
                             iconTint = MaterialTheme.colorScheme.error,
-                            actionLabel = "Tekrar Dene",
+                            actionLabel = stringResource(R.string.swipe_action_retry),
                             onAction = repos::retry,
                         )
                     }
@@ -106,14 +112,14 @@ fun SwipeScreen(
                             } else if (repos.itemCount == 0) {
                                 EmptyState(
                                     icon = RepoSwipeIcons.NoResults,
-                                    title = "Sonuç bulunamadı",
-                                    message = "Bu kritere uyan repo yok — farklı bir dil dene.",
+                                    title = stringResource(R.string.swipe_no_results_title),
+                                    message = stringResource(R.string.swipe_no_results_message),
                                 )
                             } else {
                                 EmptyState(
                                     icon = RepoSwipeIcons.Apply,
-                                    title = "Hepsini gördün!",
-                                    message = "Bu dildeki tüm repoları kaydırdın — farklı bir dil dene.",
+                                    title = stringResource(R.string.swipe_all_seen_title),
+                                    message = stringResource(R.string.swipe_all_seen_message),
                                 )
                             }
                         }
@@ -151,14 +157,15 @@ private fun SwipeDeckContent(
             itemKey = { it.id },
             onSwiped = onSwiped,
             state = deckState,
-            leftActionLabel = "Pas geç",
-            rightActionLabel = "Star ver",
+            leftActionLabel = stringResource(R.string.swipe_action_pass),
+            rightActionLabel = stringResource(R.string.swipe_action_star),
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .aspectRatio(3f / 4f),
         ) { repo ->
-            RepoCard(data = repo.toCardData(), modifier = Modifier.fillMaxSize())
+            val updatedLabel = stringResource(R.string.swipe_updated_at, repo.updatedAt.toRelativeTimeLabel())
+            RepoCard(data = repo.toCardData(updatedLabel), modifier = Modifier.fillMaxSize())
         }
 
         Row(
@@ -171,12 +178,12 @@ private fun SwipeDeckContent(
         ) {
             SwipeActionButton(
                 icon = RepoSwipeIcons.Rewind,
-                contentDescription = "Geri al",
+                contentDescription = stringResource(R.string.swipe_action_rewind_cd),
                 onClick = onRewind,
             )
             SwipeActionButton(
                 icon = RepoSwipeIcons.Skip,
-                contentDescription = "Pas geç",
+                contentDescription = stringResource(R.string.swipe_action_pass),
                 onClick = { coroutineScope.launch { deckState.swipeLeft() } },
                 size = SwipeActionButtonSize.Large,
                 containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
@@ -185,7 +192,7 @@ private fun SwipeDeckContent(
             )
             SwipeActionButton(
                 icon = RepoSwipeIcons.Like,
-                contentDescription = "Star ver",
+                contentDescription = stringResource(R.string.swipe_action_star),
                 onClick = { coroutineScope.launch { deckState.swipeRight() } },
                 size = SwipeActionButtonSize.Large,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -194,7 +201,7 @@ private fun SwipeDeckContent(
             )
             SwipeActionButton(
                 icon = RepoSwipeIcons.QuickView,
-                contentDescription = "Hızlı bakış",
+                contentDescription = stringResource(R.string.swipe_action_quick_view_cd),
                 // reserved for a future repo-detail sheet
                 onClick = {},
             )
@@ -209,7 +216,7 @@ private fun FullScreenState(content: @Composable () -> Unit) {
     }
 }
 
-private fun Repo.toCardData(): RepoCardData =
+private fun Repo.toCardData(updatedAtLabel: String): RepoCardData =
     RepoCardData(
         ownerAvatarUrl = ownerAvatarUrl,
         ownerLogin = ownerLogin,
@@ -218,7 +225,7 @@ private fun Repo.toCardData(): RepoCardData =
         headerImageUrl = headerImageUrl,
         starCount = starCount.toCompactCount(),
         forkCount = forkCount.toCompactCount(),
-        updatedAtLabel = "Updated ${updatedAt.toRelativeTimeLabel()}",
+        updatedAtLabel = updatedAtLabel,
         languageName = language,
         languageColor = languageColor(language),
     )

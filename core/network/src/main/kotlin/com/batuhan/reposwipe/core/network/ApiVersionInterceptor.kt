@@ -10,7 +10,9 @@ class ApiVersionInterceptor
     constructor() : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
             val request =
-                chain.request().newBuilder()
+                chain
+                    .request()
+                    .newBuilder()
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", GitHubApiConstants.API_VERSION)
                     .build()

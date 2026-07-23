@@ -8,7 +8,9 @@ import io.sentry.android.core.SentryAndroid
 import javax.inject.Inject
 
 @HiltAndroidApp
-class RepoSwipeApp : Application(), Configuration.Provider {
+class RepoSwipeApp :
+    Application(),
+    Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 

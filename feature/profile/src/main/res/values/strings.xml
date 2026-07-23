@@ -1,0 +1,10 @@
+<resources>
+    <string name="profile_top_bar_title">Profile</string>
+    <string name="profile_error_title">Profil yüklenemedi</string>
+    <string name="profile_error_message">Profil yüklenemedi.</string>
+    <string name="profile_action_retry">Tekrar Dene</string>
+    <string name="profile_stat_repos">REPOS</string>
+    <string name="profile_stat_followers">FOLLOWERS</string>
+    <string name="profile_stat_following">FOLLOWING</string>
+    <string name="profile_sign_out">Çıkış Yap</string>
+</resources>

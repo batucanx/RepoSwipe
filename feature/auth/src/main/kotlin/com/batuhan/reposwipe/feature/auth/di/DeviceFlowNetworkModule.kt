@@ -29,7 +29,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DeviceFlowNetworkModule {
     private val Tls12ConnectionSpec =
-        ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+        ConnectionSpec
+            .Builder(ConnectionSpec.MODERN_TLS)
             .tlsVersions(TlsVersion.TLS_1_2)
             .build()
 
@@ -38,17 +39,18 @@ object DeviceFlowNetworkModule {
     @Provides
     @Singleton
     fun provideGitHubDeviceFlowApi(json: Json): GitHubDeviceFlowApi =
-        Retrofit.Builder()
+        Retrofit
+            .Builder()
             .baseUrl("https://github.com/")
             .client(
-                OkHttpClient.Builder()
+                OkHttpClient
+                    .Builder()
                     .connectionSpecs(listOf(Tls12ConnectionSpec))
                     .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .build(),
-            )
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            ).addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(GitHubDeviceFlowApi::class.java)
 }

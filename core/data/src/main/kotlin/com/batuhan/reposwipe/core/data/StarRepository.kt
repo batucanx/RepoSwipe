@@ -75,7 +75,8 @@ class StarRepositoryImpl
 
         private fun scheduleSync() {
             val constraints =
-                Constraints.Builder()
+                Constraints
+                    .Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
                     .build()
             val request =
@@ -84,7 +85,8 @@ class StarRepositoryImpl
                     .build()
             // APPEND (not KEEP): a worker already running may have missed an entry added just now,
             // so the next run needs to happen too, rather than being skipped as "already enqueued".
-            WorkManager.getInstance(context)
+            WorkManager
+                .getInstance(context)
                 .enqueueUniqueWork(SYNC_WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
 

@@ -2,6 +2,7 @@ package com.batuhan.reposwipe.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.core.data.UserRepository
 import com.batuhan.reposwipe.core.datastore.TokenDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +44,7 @@ class ProfileViewModel
                     it.copy(
                         isLoading = false,
                         user = result.getOrNull(),
-                        error = if (result.isFailure) "Profil yüklenemedi." else null,
+                        error = if (result.isFailure) UiText.Resource(R.string.profile_error_message) else null,
                     )
                 }
             }

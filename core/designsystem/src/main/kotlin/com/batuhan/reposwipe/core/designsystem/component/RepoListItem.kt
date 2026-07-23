@@ -21,8 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.batuhan.reposwipe.core.designsystem.R
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 
@@ -77,7 +79,12 @@ fun RepoListItem(
             IconButton(onClick = onToggleStar) {
                 Icon(
                     imageVector = if (data.isStarred) RepoSwipeIcons.StarFilled else RepoSwipeIcons.Star,
-                    contentDescription = if (data.isStarred) "Star'ı kaldır" else "Star ver",
+                    contentDescription =
+                        if (data.isStarred) {
+                            stringResource(R.string.repo_list_item_unstar_cd)
+                        } else {
+                            stringResource(R.string.repo_list_item_star_cd)
+                        },
                     tint = MaterialTheme.colorScheme.tertiary,
                 )
             }
@@ -122,7 +129,7 @@ fun RepoListItem(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         ) {
-            Text(text = "View on GitHub")
+            Text(text = stringResource(R.string.repo_list_item_view_on_github))
             Icon(
                 imageVector = RepoSwipeIcons.OpenExternal,
                 contentDescription = null,

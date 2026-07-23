@@ -1,0 +1,10 @@
+<resources>
+    <string name="starred_error_title">Star\'lanan repolar yüklenemedi</string>
+    <string name="starred_error_message">Star\'lanan repolar yüklenemedi.</string>
+    <string name="starred_action_retry">Tekrar Dene</string>
+    <string name="starred_stat_label">STARRED</string>
+    <string name="starred_all_repos_chip">All Repos</string>
+    <string name="starred_empty_title">Henüz star\'ladığın repo yok</string>
+    <string name="starred_empty_message">Discover\'da sağa kaydırdığın repolar burada listelenir.</string>
+    <string name="starred_load_more">Daha Fazla Yükle</string>
+</resources>

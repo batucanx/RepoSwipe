@@ -1,0 +1,14 @@
+<resources>
+    <string name="auth_brand_name">RepoSwipe</string>
+    <string name="auth_connecting">GitHub\'a bağlanılıyor…</string>
+    <string name="auth_success_redirecting">Giriş yapıldı, yönlendiriliyorsun…</string>
+    <string name="auth_sign_in_prompt">GitHub hesabınla giriş yap</string>
+    <string name="auth_open_github">GitHub\'da Aç</string>
+    <string name="auth_awaiting_confirmation">Kodu onayladığında otomatik olarak devam edeceğiz.</string>
+    <string name="auth_action_retry">Tekrar Dene</string>
+    <string name="auth_error_missing_client_id">GitHub Client ID tanımlı değil. local.properties dosyasına github.clientId=… ekleyip projeyi yeniden derle.</string>
+    <string name="auth_error_no_internet">İnternet bağlantını kontrol et.</string>
+    <string name="auth_error_unknown">Bilinmeyen bir hata oluştu.</string>
+    <string name="auth_error_expired">Kodun süresi doldu, tekrar dene.</string>
+    <string name="auth_error_access_denied">Giriş reddedildi.</string>
+</resources>

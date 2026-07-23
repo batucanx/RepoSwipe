@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">RepoSwipe</string>
+
+    <string name="nav_discover">Discover</string>
+    <string name="nav_trending">Trending</string>
+    <string name="nav_starred">Starred</string>
+    <string name="nav_profile">Profile</string>
 </resources>

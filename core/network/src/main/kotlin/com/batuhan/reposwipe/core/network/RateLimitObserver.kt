@@ -6,7 +6,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class RateLimitInfo(val remaining: Int, val resetEpochSeconds: Long) {
+data class RateLimitInfo(
+    val remaining: Int,
+    val resetEpochSeconds: Long,
+) {
     val isExhausted: Boolean
         get() = remaining <= 0 && System.currentTimeMillis() / 1000 < resetEpochSeconds
 }

@@ -1,0 +1,22 @@
+<resources>
+    <string name="filter_close_cd">Kapat</string>
+    <string name="filter_brand_name">RepoSwipe</string>
+    <string name="filter_reset">Reset</string>
+    <string name="filter_header_title">Refine Discovery</string>
+    <string name="filter_header_subtitle">Adjust your preferences to find the perfect repositories for your next project.</string>
+    <string name="filter_section_languages">Programming Languages</string>
+    <string name="filter_selected_count">%1$d Selected</string>
+    <string name="filter_section_topics">Popular Topics</string>
+    <string name="filter_section_min_stars">Minimum Stars</string>
+    <string name="filter_stars_any">Any</string>
+    <string name="filter_stars_plus">%1$s+</string>
+    <string-array name="filter_stars_axis_labels">
+        <item>0</item>
+        <item>10k</item>
+        <item>25k</item>
+        <item>50k+</item>
+    </string-array>
+    <string name="filter_section_repo_status">Repository Status</string>
+    <string name="filter_updated_this_week">Updated this week</string>
+    <string name="filter_apply">Apply Filters</string>
+</resources>

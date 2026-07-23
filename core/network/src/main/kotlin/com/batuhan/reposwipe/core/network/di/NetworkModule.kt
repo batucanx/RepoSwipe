@@ -2,6 +2,7 @@ package com.batuhan.reposwipe.core.network.di
 
 import com.batuhan.reposwipe.core.network.ApiVersionInterceptor
 import com.batuhan.reposwipe.core.network.AuthInterceptor
+import com.batuhan.reposwipe.core.network.BuildConfig
 import com.batuhan.reposwipe.core.network.GitHubApiConstants
 import com.batuhan.reposwipe.core.network.GitHubApiService
 import com.batuhan.reposwipe.core.network.RateLimitInterceptor
@@ -40,12 +41,17 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
         rateLimitInterceptor: RateLimitInterceptor,
     ): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .addInterceptor(apiVersionInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(rateLimitInterceptor)
-            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
-            .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .apply {
+                // Never in release: even BASIC level writes request URLs/response codes to Logcat.
+                if (BuildConfig.DEBUG) {
+                    addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+                }
+            }.connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .build()
@@ -56,7 +62,8 @@ object NetworkModule {
         okHttpClient: OkHttpClient,
         json: Json,
     ): Retrofit =
-        Retrofit.Builder()
+        Retrofit
+            .Builder()
             .baseUrl(GitHubApiConstants.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))

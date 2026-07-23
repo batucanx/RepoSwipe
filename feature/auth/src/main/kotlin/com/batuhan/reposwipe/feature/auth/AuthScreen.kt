@@ -20,11 +20,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.batuhan.reposwipe.core.designsystem.text.asString
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 
 @Composable
@@ -48,7 +50,7 @@ fun AuthScreen(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "RepoSwipe",
+            text = stringResource(R.string.auth_brand_name),
             style = RepoSwipeTheme.typography.displaySmMobile,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -58,14 +60,14 @@ fun AuthScreen(
         when (val state = uiState) {
             is DeviceFlowUiState.Loading -> LoadingContent()
             is DeviceFlowUiState.AwaitingUser -> AwaitingUserContent(state)
-            is DeviceFlowUiState.Success -> LoadingContent(message = "Giriş yapıldı, yönlendiriliyorsun…")
+            is DeviceFlowUiState.Success -> LoadingContent(message = stringResource(R.string.auth_success_redirecting))
             is DeviceFlowUiState.Error -> ErrorContent(state, onRetry = viewModel::retry)
         }
     }
 }
 
 @Composable
-private fun LoadingContent(message: String = "GitHub'a bağlanılıyor…") {
+private fun LoadingContent(message: String = stringResource(R.string.auth_connecting)) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.md))
@@ -82,7 +84,7 @@ private fun AwaitingUserContent(state: DeviceFlowUiState.AwaitingUser) {
     val context = LocalContext.current
 
     Text(
-        text = "GitHub hesabınla giriş yap",
+        text = stringResource(R.string.auth_sign_in_prompt),
         style = RepoSwipeTheme.typography.bodyLg,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -107,7 +109,7 @@ private fun AwaitingUserContent(state: DeviceFlowUiState.AwaitingUser) {
         },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(text = "GitHub'da Aç")
+        Text(text = stringResource(R.string.auth_open_github))
     }
 
     Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.md))
@@ -121,7 +123,7 @@ private fun AwaitingUserContent(state: DeviceFlowUiState.AwaitingUser) {
     Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.sm))
 
     Text(
-        text = "Kodu onayladığında otomatik olarak devam edeceğiz.",
+        text = stringResource(R.string.auth_awaiting_confirmation),
         style = RepoSwipeTheme.typography.bodySm,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -133,12 +135,12 @@ private fun ErrorContent(
     onRetry: () -> Unit,
 ) {
     Text(
-        text = state.message,
+        text = state.message.asString(),
         style = RepoSwipeTheme.typography.bodyLg,
         color = MaterialTheme.colorScheme.error,
     )
     Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.md))
     OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Tekrar Dene")
+        Text(text = stringResource(R.string.auth_action_retry))
     }
 }

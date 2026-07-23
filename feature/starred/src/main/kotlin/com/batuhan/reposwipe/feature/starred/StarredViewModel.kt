@@ -2,6 +2,7 @@ package com.batuhan.reposwipe.feature.starred
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.core.data.StarRepository
 import com.batuhan.reposwipe.core.data.StarredReposRepository
 import com.batuhan.reposwipe.core.data.UserRepository
@@ -21,7 +22,7 @@ import javax.inject.Inject
 private data class FetchState(
     val isLoading: Boolean = true,
     val isLoadingMore: Boolean = false,
-    val error: String? = null,
+    val error: UiText? = null,
     val user: User? = null,
     val serverRepos: List<Repo> = emptyList(),
     val hasMore: Boolean = true,
@@ -107,7 +108,7 @@ class StarredViewModel
                         user = userResult.getOrNull(),
                         serverRepos = reposResult.getOrDefault(emptyList()),
                         hasMore = reposResult.getOrDefault(emptyList()).size >= PAGE_SIZE,
-                        error = if (reposResult.isFailure) "Star'lanan repolar yüklenemedi." else null,
+                        error = if (reposResult.isFailure) UiText.Resource(R.string.starred_error_message) else null,
                     )
                 }
                 currentPage = 1

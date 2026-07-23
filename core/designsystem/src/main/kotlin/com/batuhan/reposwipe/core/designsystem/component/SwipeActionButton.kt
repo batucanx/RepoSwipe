@@ -57,8 +57,7 @@ fun SwipeActionButton(
                 .graphicsLayer {
                     scaleX = pressScale
                     scaleY = pressScale
-                }
-                .background(containerColor, CircleShape)
+                }.background(containerColor, CircleShape)
                 .border(borderWidth, borderColor, CircleShape)
                 .clickable(
                     interactionSource = interactionSource,

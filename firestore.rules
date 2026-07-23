@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Security rules for the global "Trending Today" leaderboard written by
+// core/data/.../LeaderboardRepository.kt. The app has no Firebase Authentication step (GitHub
+// Device Flow auth is separate and Firestore has no idea about it), so these rules can't check
+// request.auth — instead they constrain the *shape* of every write so a client can only ever
+// record "one more swipe for a repo today", never overwrite/delete other data or set arbitrary
+// field values. This is not a substitute for App Check (recommended as the next layer — see
+// README) but it closes the "can write anything at all" hole.
+//
+// Deploy: paste this file's contents into Firebase Console → Firestore Database → Rules, or via
+// the Firebase CLI (`firebase deploy --only firestore:rules`) if this project is wired up with
+// one. This repo doesn't include firebase.json/CLI wiring — do that part yourself in the console,
+// same as the other Firebase setup steps.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /leaderboard/{date}/entries/{repoId} {
+      allow read: if true;
+
+      // First swipe for a repo today: document doesn't exist yet, increment(1) resolves to 1.
+      allow create: if isValidEntry(request.resource.data)
+        && request.resource.data.swipeCount == 1;
+
+      // Every later swipe: only swipeCount/lastSwipedAt may change, and swipeCount can only ever
+      // go up by exactly one per write (blocks setting it to an arbitrary number directly).
+      allow update: if isValidEntry(request.resource.data)
+        && request.resource.data.repoId == resource.data.repoId
+        && request.resource.data.repoName == resource.data.repoName
+        && request.resource.data.ownerLogin == resource.data.ownerLogin
+        && request.resource.data.htmlUrl == resource.data.htmlUrl
+        && request.resource.data.swipeCount == resource.data.swipeCount + 1;
+
+      allow delete: if false;
+    }
+
+    // Deny-by-default everywhere else in the project.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+function isValidEntry(data) {
+  return data.keys().hasOnly(
+      ['repoId', 'repoName', 'ownerLogin', 'description', 'language', 'htmlUrl', 'swipeCount', 'lastSwipedAt']
+    )
+    && data.repoId is int
+    && data.repoName is string && data.repoName.size() > 0
+    && data.ownerLogin is string && data.ownerLogin.size() > 0
+    && data.htmlUrl is string && data.htmlUrl.size() > 0
+    && data.swipeCount is int
+    && data.lastSwipedAt == request.time;
+}

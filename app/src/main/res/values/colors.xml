@@ -1,0 +1,5 @@
+<resources>
+    <!-- Sampled from app_icon/app_icon.png's dark rounded-square backdrop — the adaptive
+         launcher icon's background layer, independent of the app's own light/dark theme. -->
+    <color name="ic_launcher_background">#10151B</color>
+</resources>
