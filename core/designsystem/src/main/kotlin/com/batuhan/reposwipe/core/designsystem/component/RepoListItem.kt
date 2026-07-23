@@ -62,6 +62,7 @@ fun RepoListItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs),
             ) {
@@ -75,6 +76,8 @@ fun RepoListItem(
                     text = data.ownerRepoLabel,
                     style = RepoSwipeTheme.typography.headlineMd,
                     color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
