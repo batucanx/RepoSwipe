@@ -1,0 +1,17 @@
+<resources>
+    <string name="people_title">People</string>
+    <string name="people_close_cd">Close</string>
+    <string name="people_tab_followers">Followers</string>
+    <string name="people_tab_following">Following</string>
+
+    <string name="people_error_title">Something went wrong</string>
+    <string name="people_error_message">Couldn\'t load this list. Check your connection and try again.</string>
+    <string name="people_action_retry">Retry</string>
+
+    <string name="people_empty_followers_title">No followers yet</string>
+    <string name="people_empty_followers_message">Once other GitHub users follow you, they\'ll show up here.</string>
+    <string name="people_empty_following_title">Not following anyone yet</string>
+    <string name="people_empty_following_message">People you follow on GitHub will show up here.</string>
+
+    <string name="people_load_more">Load more</string>
+</resources>

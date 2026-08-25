@@ -1,0 +1,169 @@
+package com.batuhan.reposwipe.feature.auth
+
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
+import com.batuhan.reposwipe.core.designsystem.text.asString
+import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
+
+@Composable
+fun AuthScreen(
+    onAuthenticated: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: DeviceFlowViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState) {
+        if (uiState is DeviceFlowUiState.Success) onAuthenticated()
+    }
+
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = RepoSwipeTheme.spacing.xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.auth_brand_name),
+            style = RepoSwipeTheme.typography.displaySmMobile,
+            color = MaterialTheme.colorScheme.primary,
+        )
+
+        Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.xl))
+
+        when (val state = uiState) {
+            is DeviceFlowUiState.Loading -> LoadingContent()
+            is DeviceFlowUiState.AwaitingUser -> AwaitingUserContent(state)
+            is DeviceFlowUiState.Success -> LoadingContent(message = stringResource(R.string.auth_success_redirecting))
+            is DeviceFlowUiState.Error -> ErrorContent(state, onRetry = viewModel::retry)
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent(message: String = stringResource(R.string.auth_connecting)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.md))
+        Text(
+            text = message,
+            style = RepoSwipeTheme.typography.bodyLg,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun AwaitingUserContent(state: DeviceFlowUiState.AwaitingUser) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val codeCopiedMessage = stringResource(R.string.auth_code_copied)
+
+    Text(
+        text = stringResource(R.string.auth_sign_in_prompt),
+        style = RepoSwipeTheme.typography.bodyLg,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
+    Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.lg))
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = state.userCode,
+            style =
+                RepoSwipeTheme.typography.displayLg.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 4.sp,
+                ),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        IconButton(
+            onClick = {
+                clipboardManager.setText(AnnotatedString(state.userCode))
+                Toast.makeText(context, codeCopiedMessage, Toast.LENGTH_SHORT).show()
+            },
+        ) {
+            Icon(
+                imageVector = RepoSwipeIcons.Copy,
+                contentDescription = stringResource(R.string.auth_copy_code_cd),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.lg))
+
+    Button(
+        onClick = {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.verificationUri)))
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(text = stringResource(R.string.auth_open_github))
+    }
+
+    Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.md))
+
+    CircularProgressIndicator(
+        modifier = Modifier.size(20.dp),
+        strokeWidth = 2.dp,
+        color = MaterialTheme.colorScheme.primary,
+    )
+
+    Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.sm))
+
+    Text(
+        text = stringResource(R.string.auth_awaiting_confirmation),
+        style = RepoSwipeTheme.typography.bodySm,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun ErrorContent(
+    state: DeviceFlowUiState.Error,
+    onRetry: () -> Unit,
+) {
+    Text(
+        text = state.message.asString(),
+        style = RepoSwipeTheme.typography.bodyLg,
+        color = MaterialTheme.colorScheme.error,
+    )
+    Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.md))
+    OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+        Text(text = stringResource(R.string.auth_action_retry))
+    }
+}

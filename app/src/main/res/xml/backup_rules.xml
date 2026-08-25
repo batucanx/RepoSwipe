@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pre-API 31 Auto Backup fallback — same reasoning as data_extraction_rules.xml. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/auth_prefs.preferences_pb" />
+</full-backup-content>

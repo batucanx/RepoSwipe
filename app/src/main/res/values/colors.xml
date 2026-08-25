@@ -1,0 +1,7 @@
+<resources>
+    <!-- Matches core/designsystem's DarkBackground/DarkSurface token (#0A0A0B) rather than a
+         color sampled from the icon file itself, so the adaptive launcher icon's background
+         layer is visually seamless with the new icon's own near-black backdrop *and* consistent
+         with the in-app dark theme it sits next to on the home screen. -->
+    <color name="ic_launcher_background">#0A0A0B</color>
+</resources>

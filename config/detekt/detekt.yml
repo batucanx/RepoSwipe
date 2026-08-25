@@ -1,0 +1,33 @@
+build:
+  maxIssues: 0
+
+style:
+  MagicNumber:
+    active: false # noisy on Compose UI code (dp/sp/color/spring literals aren't "magic")
+  MaxLineLength:
+    active: true
+    maxLineLength: 130
+  ReturnCount:
+    active: true
+    max: 5 # guard-clause-heavy Kotlin (early return on each branch) reads better than nesting
+
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable'] # PascalCase is the Compose naming convention, not a violation
+  MatchingDeclarationName:
+    active: false # a screen file legitimately also holds its small state/data support types
+
+complexity:
+  TooManyFunctions:
+    active: false # Compose screens are idiomatically split into many small private @Composable funs
+  LongMethod:
+    active: true
+    threshold: 120 # Compose UI functions run longer than imperative code for the same feature
+  LongParameterList:
+    active: true
+    functionThreshold: 10
+    constructorThreshold: 8
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 20 # declarative UI branching (if/when across conditional rendering) isn't procedural complexity

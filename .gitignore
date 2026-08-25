@@ -1,0 +1,34 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+**/.idea/
+.DS_Store
+build/
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.hprof
+.kotlin/
+
+# AI assistant tooling / config — local dev aid only, never shipped or published
+CLAUDE.md
+AGENTS.md
+.claude/
+.codex/
+.mcp.json
+
+# Gradle wrapper jar is intentionally NOT ignored — it must be committed
+!gradle/wrapper/gradle-wrapper.jar
+
+# Firebase / secrets — never commit
+google-services.json
+**/google-services.json
+*.keystore
+*.jks
+keystore.properties
+
+# Sentry
+sentry.properties

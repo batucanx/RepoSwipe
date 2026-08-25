@@ -1,0 +1,18 @@
+<resources>
+    <string name="topbar_title_default">RepoSwipe</string>
+    <string name="topbar_menu_cd">Menu</string>
+    <string name="topbar_filters_cd">Filters</string>
+    <string name="topbar_settings_cd">Settings</string>
+
+    <string name="repo_list_item_unstar_cd">Remove star</string>
+    <string name="repo_list_item_star_cd">Add star</string>
+    <string name="repo_list_item_view_on_github">View on GitHub</string>
+    <string name="repo_list_item_share_cd">Share</string>
+
+    <string name="offline_banner_message">No internet connection</string>
+
+    <string name="user_list_item_follow">Follow</string>
+    <string name="user_list_item_following">Following</string>
+    <string name="user_list_item_follow_cd">Follow user</string>
+    <string name="user_list_item_unfollow_cd">Unfollow user</string>
+</resources>

@@ -1,0 +1,33 @@
+<resources>
+    <string name="filter_close_cd">Kapat</string>
+    <string name="filter_brand_name">RepoSwipe</string>
+    <string name="filter_reset">Reset</string>
+    <string name="filter_header_title">Refine Discovery</string>
+    <string name="filter_header_subtitle">Adjust your preferences to find the perfect repositories for your next project.</string>
+    <string name="filter_section_languages">Programming Languages</string>
+    <string name="filter_section_topics">Popular Topics</string>
+    <string name="filter_section_min_stars">Minimum Stars</string>
+    <string name="filter_stars_any">Any</string>
+    <string name="filter_stars_plus">%1$s+</string>
+    <string-array name="filter_stars_axis_labels">
+        <item>0</item>
+        <item>10k</item>
+        <item>25k</item>
+        <item>50k+</item>
+    </string-array>
+    <string name="filter_section_repo_status">Repository Status</string>
+    <string name="filter_status_active">Active</string>
+    <string name="filter_status_archived">Archived</string>
+    <string name="filter_apply">Apply Filters</string>
+
+    <string name="search_close_cd">Kapat</string>
+    <string name="search_placeholder">GitHub\'da repo ara…</string>
+    <string name="search_submit_cd">Ara</string>
+    <string name="search_prompt_title">Repo ara</string>
+    <string name="search_prompt_message">Bir terim yaz ve Ara\'ya bas — örneğin \"react\" veya \"http client\".</string>
+    <string name="search_error_title">Arama başarısız</string>
+    <string name="search_error_message">Bağlantını kontrol et ve tekrar dene.</string>
+    <string name="search_action_retry">Tekrar Dene</string>
+    <string name="search_no_results_title">Sonuç bulunamadı</string>
+    <string name="search_no_results_message">\"%1$s\" için hiç repo bulunamadı.</string>
+</resources>

@@ -1,0 +1,64 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Firebase config is gitignored (never committed). This stub only satisfies the
+      # google-services Gradle plugin's "file must exist" check so CI can build the :app
+      # module without any real credentials or repo secrets — it isn't used at runtime.
+      - name: Stub google-services.json for CI build
+        run: |
+          cat > app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "reposwipe-ci",
+              "storage_bucket": "reposwipe-ci.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.batuhan.reposwipe" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "AIzaSyCIStubKeyNotARealCredential0000" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
+      - name: Build, lint & static analysis (detekt + ktlint)
+        run: ./gradlew build --stacktrace
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            **/build/reports/lint-results-*.html
+            **/build/reports/detekt/detekt.html
+          retention-days: 7

@@ -1,0 +1,31 @@
+<resources>
+    <string name="swipe_rate_limit_title">GitHub API sınırına ulaşıldı</string>
+    <string name="swipe_rate_limit_message">%1$s civarında tekrar dene.</string>
+    <string name="swipe_repos_error_title">Repolar yüklenemedi</string>
+    <string name="swipe_repos_error_message">Bağlantını kontrol et ve tekrar dene.</string>
+    <string name="swipe_action_retry">Tekrar Dene</string>
+    <string name="swipe_no_results_title">Sonuç bulunamadı</string>
+    <string name="swipe_no_results_message">Bu kritere uyan repo yok — farklı bir dil dene.</string>
+    <string name="swipe_all_seen_title">Hepsini gördün!</string>
+    <string name="swipe_all_seen_message">Bu dildeki tüm repoları kaydırdın — farklı bir dil dene.</string>
+    <string name="swipe_action_pass">Pas geç</string>
+    <string name="swipe_action_star">Star ver</string>
+    <string name="swipe_action_rewind_cd">Geri al</string>
+    <string name="swipe_action_quick_view_cd">Hızlı bakış</string>
+    <string name="swipe_action_open_github_cd">GitHub\'da aç</string>
+    <string name="swipe_detail_share_cd">Share</string>
+    <string name="swipe_detail_star_cd">Star on GitHub</string>
+    <string name="swipe_detail_unstar_cd">Remove star on GitHub</string>
+    <string name="swipe_detail_stat_stars">Yıldız</string>
+    <string name="swipe_detail_stat_forks">Fork</string>
+    <string name="swipe_detail_stat_updated">Güncellendi</string>
+    <string name="swipe_detail_readme_title">README.md</string>
+    <string name="swipe_detail_readme_empty">Bu repo için README bulunamadı.</string>
+    <string name="swipe_detail_readme_error">README yüklenemedi.</string>
+    <string name="swipe_detail_readme_show_more">Devamını gör</string>
+    <string name="swipe_detail_languages_title">Diller</string>
+    <string name="swipe_detail_language_percent">%1$s %%%2$d</string>
+    <string name="swipe_detail_contributors_title">Katkıda Bulunanlar</string>
+    <string name="swipe_detail_similar_repos_title">Benzer Repolar</string>
+    <string name="swipe_search_cd">Ara</string>
+</resources>

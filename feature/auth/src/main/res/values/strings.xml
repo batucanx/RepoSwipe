@@ -1,0 +1,27 @@
+<resources>
+    <string name="auth_brand_name">RepoSwipe</string>
+    <string name="auth_connecting">GitHub\'a bağlanılıyor…</string>
+    <string name="auth_success_redirecting">Giriş yapıldı, yönlendiriliyorsun…</string>
+    <string name="auth_sign_in_prompt">GitHub hesabınla giriş yap</string>
+    <string name="auth_open_github">GitHub\'da Aç</string>
+    <string name="auth_awaiting_confirmation">Kodu onayladığında otomatik olarak devam edeceğiz.</string>
+    <string name="auth_action_retry">Tekrar Dene</string>
+    <string name="auth_error_missing_client_id">GitHub Client ID tanımlı değil. local.properties dosyasına github.clientId=… ekleyip projeyi yeniden derle.</string>
+    <string name="auth_error_no_internet">İnternet bağlantını kontrol et.</string>
+    <string name="auth_error_unknown">Bilinmeyen bir hata oluştu.</string>
+    <string name="auth_error_expired">Kodun süresi doldu, tekrar dene.</string>
+    <string name="auth_error_access_denied">Giriş reddedildi.</string>
+    <string name="auth_copy_code_cd">Kodu kopyala</string>
+    <string name="auth_code_copied">Kod kopyalandı</string>
+
+    <string name="onboarding_skip_all">Atla</string>
+    <string name="onboarding_skip_step">Bu soruyu atla</string>
+    <string name="onboarding_language_title">Hangi dillerle ilgileniyorsun?</string>
+    <string name="onboarding_language_subtitle">Discover\'ı buna göre ayarlayalım.</string>
+    <string name="onboarding_topic_title">Ne tür projeler ilgini çekiyor?</string>
+    <string name="onboarding_topic_subtitle">Bir kategori seç, ona göre önerelim.</string>
+    <string name="onboarding_popularity_title">Nasıl repolar görmek istersin?</string>
+    <string name="onboarding_popularity_subtitle">Bunu Filtreler ekranından istediğin zaman değiştirebilirsin.</string>
+    <string name="onboarding_popularity_popular">Sadece popüler (1000+ ⭐)</string>
+    <string name="onboarding_popularity_all">Hepsini göster</string>
+</resources>
