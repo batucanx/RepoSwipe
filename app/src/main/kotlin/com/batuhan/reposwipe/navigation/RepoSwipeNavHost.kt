@@ -39,7 +39,10 @@ import com.batuhan.reposwipe.feature.settings.navigation.SETTINGS_ROUTE
 import com.batuhan.reposwipe.feature.settings.navigation.settingsScreen
 import com.batuhan.reposwipe.feature.starred.navigation.STARRED_ROUTE
 import com.batuhan.reposwipe.feature.starred.navigation.starredScreen
+import com.batuhan.reposwipe.feature.swipe.navigation.DETAIL_ACTION_RESULT
 import com.batuhan.reposwipe.feature.swipe.navigation.SWIPE_ROUTE
+import com.batuhan.reposwipe.feature.swipe.navigation.repoDetailRoute
+import com.batuhan.reposwipe.feature.swipe.navigation.repoDetailScreen
 import com.batuhan.reposwipe.feature.swipe.navigation.swipeScreen
 
 private val MAIN_TAB_ROUTES = setOf(SWIPE_ROUTE, LEADERBOARD_ROUTE, STARRED_ROUTE, PROFILE_ROUTE)
@@ -75,6 +78,12 @@ fun RepoSwipeNavHost(
             }
         }
         wasAuthenticated = isAuthenticated
+    }
+
+    // Shared by every list-style entry point (Trending, Starred, Search) — only the swipe deck's
+    // own onOpenDetail (below) differs, since that one keeps fromDeck's default true.
+    val onOpenDetailFromList: (owner: String, repo: String) -> Unit = { owner, repo ->
+        navController.navigate(repoDetailRoute(owner, repo, fromDeck = false))
     }
 
     val discoverLabel = stringResource(R.string.nav_discover)
@@ -133,11 +142,10 @@ fun RepoSwipeNavHost(
                 )
                 swipeScreen(
                     onFiltersClick = { navController.navigate(FILTER_ROUTE) },
-                    onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
-                    onSearchClick = { navController.navigate(SEARCH_ROUTE) },
+                    onOpenDetail = { owner, repo -> navController.navigate(repoDetailRoute(owner, repo)) },
                 )
                 leaderboardScreen(
-                    onFiltersClick = { navController.navigate(FILTER_ROUTE) },
+                    onSearchClick = { navController.navigate(SEARCH_ROUTE) },
                     onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
                     onNavigateToDiscover = {
                         navController.navigate(SWIPE_ROUTE) {
@@ -146,23 +154,32 @@ fun RepoSwipeNavHost(
                             restoreState = true
                         }
                     },
+                    onOpenDetail = onOpenDetailFromList,
                 )
                 starredScreen(
                     onFiltersClick = { navController.navigate(FILTER_ROUTE) },
                     onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
+                    onOpenDetail = onOpenDetailFromList,
                 )
                 profileScreen(
-                    // Navigation on sign-out is handled reactively above via isAuthenticated,
-                    // uniformly with server-side session invalidation (401s).
-                    onSignedOut = {},
                     onMenuClick = { navController.navigate(SETTINGS_ROUTE) },
                     onFollowersClick = { navController.navigate(peopleRoute(PeopleTab.FOLLOWERS)) },
                     onFollowingClick = { navController.navigate(peopleRoute(PeopleTab.FOLLOWING)) },
                 )
                 filterScreen(onClose = { navController.popBackStack() })
-                searchScreen(onClose = { navController.popBackStack() })
+                searchScreen(
+                    onClose = { navController.popBackStack() },
+                    onOpenDetail = onOpenDetailFromList,
+                )
                 settingsScreen(onClose = { navController.popBackStack() })
                 peopleScreen(onClose = { navController.popBackStack() })
+                repoDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onDeckAction = { action ->
+                        navController.previousBackStackEntry?.savedStateHandle?.set(DETAIL_ACTION_RESULT, action.name)
+                        navController.popBackStack()
+                    },
+                )
             }
         }
     }

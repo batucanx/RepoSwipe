@@ -11,7 +11,7 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 - **Trending Today** — a live, cross-device leaderboard of the day's most-starred repos, aggregated in Firebase Firestore
 - **Starred** — your starred repos with language filters, kept in sync via an offline outbox (WorkManager) so starring/unstarring works offline and catches up later
 - **Profile** — GitHub account stats, recent repositories, and sign-out
-- **GitHub Device Flow auth** — no password entry in-app; token stored encrypted (DataStore + Android Keystore/Tink)
+- **GitHub sign-in via Firebase Authentication** — no password entry in-app; the GitHub access token is stored encrypted afterward (DataStore + Android Keystore/Tink)
 - Crash and performance monitoring via Sentry
 
 ## Tech stack
@@ -36,7 +36,7 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 :core:database               # Room (repo cache, star outbox)
 :core:datastore              # Encrypted token storage
 :core:data                  # Repositories — the single source of truth per domain (repos, stars, leaderboard, user)
-:feature:auth                # GitHub Device Flow
+:feature:auth                # GitHub sign-in via Firebase Auth
 :feature:swipe                # Discover screen + swipe deck
 :feature:filter               # Language/topic filters
 :feature:leaderboard          # Trending Today
@@ -49,8 +49,8 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 ### Prerequisites
 
 - Android Studio (Koala or newer) / JDK 17
-- A GitHub OAuth App with Device Flow enabled ([create one](https://github.com/settings/developers) → New OAuth App → enable Device Flow)
-- Optional: a Firebase project with Firestore (for the leaderboard) and a Sentry project (for crash reporting) — the app builds and runs without either, those features just no-op
+- A Firebase project with a GitHub OAuth App wired up as a sign-in provider — **required**, the app can't get past the sign-in screen without it. Create the OAuth App at [github.com/settings/developers](https://github.com/settings/developers), then in the Firebase Console go to Authentication → Sign-in method → add **GitHub**, paste that App's Client ID/Secret, and copy the callback URL Firebase generates there back into the OAuth App's own "Authorization callback URL"
+- Optional: Firestore enabled on that same Firebase project (for the leaderboard) and a Sentry project (for crash reporting) — the app runs without either, those two features just no-op
 
 ### Setup
 
@@ -58,15 +58,14 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 2. Create `local.properties` in the project root (gitignored):
    ```properties
    sdk.dir=/path/to/your/Android/Sdk
-   github.clientId=your_github_oauth_device_flow_client_id
    sentry.dsn=https://...@....ingest.sentry.io/...   # optional
    ```
-3. (Optional, for the leaderboard) Drop your Firebase project's `google-services.json` into `app/`
+3. Drop your Firebase project's `google-services.json` into `app/` — required even before Firestore/leaderboard is wired up, since the Gradle plugin needs *a* file present just to build
 4. Build: `./gradlew build`, or open in Android Studio and run
 
 ### Firestore security rules
 
-If you wire up your own Firebase project, the leaderboard needs these rules (Firestore Console → Rules) since the app has no Firebase Authentication — writes are scoped to just the leaderboard collection:
+If you also enable Firestore on that Firebase project, the leaderboard needs these rules (Firestore Console → Rules). `LeaderboardRepository` never reads `request.auth` (Firebase Auth exists in this app for GitHub sign-in, but that's unrelated to these writes), so they constrain the *shape* of every write instead — scoped to just the leaderboard collection:
 
 ```
 rules_version = '2';
