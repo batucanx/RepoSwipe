@@ -1,25 +1,10 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
-
-// GitHub OAuth App Client ID for the Device Flow — never committed. Add a line
-// `github.clientId=xxxxxxxxxxxxxxxxxxxx` to the (gitignored) root local.properties.
-val githubClientId: String =
-    run {
-        val properties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localPropertiesFile.inputStream().use { properties.load(it) }
-        }
-        properties.getProperty("github.clientId", "")
-    }
 
 android {
     namespace = "com.batuhan.reposwipe.feature.auth"
@@ -27,12 +12,10 @@ android {
 
     defaultConfig {
         minSdk = 26
-        buildConfigField("String", "GITHUB_CLIENT_ID", "\"$githubClientId\"")
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     compileOptions {
@@ -46,10 +29,9 @@ android {
 
 dependencies {
     implementation(project(":core:common"))
-    implementation(project(":core:network"))
+    implementation(project(":core:data"))
     implementation(project(":core:datastore"))
     implementation(project(":core:designsystem"))
-    implementation(project(":core:data"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -60,10 +42,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    implementation(libs.retrofit.core)
-    implementation(libs.retrofit.kotlinx.serialization.converter)
-    implementation(libs.okhttp.core)
-    implementation(libs.kotlinx.serialization.json)
+    // GitHub sign-in via Firebase Authentication's generic OAuth provider (see AuthRepository's
+    // doc) — Firebase's own backend holds the OAuth App's client secret and does the
+    // code-for-token exchange, so this app never needs its own token-exchange proxy or GitHub
+    // client ID at all.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
 
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
