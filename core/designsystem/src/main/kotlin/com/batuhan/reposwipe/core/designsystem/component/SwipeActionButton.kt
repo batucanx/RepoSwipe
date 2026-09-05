@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-enum class SwipeActionButtonSize { ExtraSmall, Small, Large, ExtraLarge }
+enum class SwipeActionButtonSize { ExtraSmall, Small, Medium, Large, ExtraLarge }
 
 /**
  * Circular "glass" action button used in the Tinder-style action row
@@ -47,6 +47,7 @@ fun SwipeActionButton(
         when (size) {
             SwipeActionButtonSize.ExtraLarge -> 80.dp
             SwipeActionButtonSize.Large -> 64.dp
+            SwipeActionButtonSize.Medium -> 52.dp
             SwipeActionButtonSize.Small -> 48.dp
             SwipeActionButtonSize.ExtraSmall -> 36.dp
         }
@@ -54,10 +55,11 @@ fun SwipeActionButton(
         when (size) {
             SwipeActionButtonSize.ExtraLarge -> 40.dp
             SwipeActionButtonSize.Large -> 32.dp
+            SwipeActionButtonSize.Medium -> 26.dp
             SwipeActionButtonSize.Small -> 24.dp
             SwipeActionButtonSize.ExtraSmall -> 18.dp
         }
-    val borderWidth = if (size == SwipeActionButtonSize.Small || size == SwipeActionButtonSize.ExtraSmall) 1.dp else 2.dp
+    val borderWidth = if (size == SwipeActionButtonSize.Large || size == SwipeActionButtonSize.ExtraLarge) 2.dp else 1.dp
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()

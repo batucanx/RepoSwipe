@@ -8,9 +8,7 @@ import androidx.compose.ui.graphics.Color
 // Modern" per user feedback that Primer's canvas tones read too blue-gray to feel truly "matte
 // black", and that the swipe-right/like green had gone stale/generic). The neutral ramp below
 // (background/surface containers/on-surface/outline) is now desaturated near-true-gray rather
-// than Primer's blue-tinted canvas.*/fg.* family — background sits just off pure black (avoids
-// the OLED smearing pure #000000 causes on scroll) and surfaceContainer is a distinctly lighter
-// charcoal so cards still read as raised against it. Primary/accent moved from Primer's
+// than Primer's blue-tinted canvas.*/fg.* family. Primary/accent moved from Primer's
 // btn.primary.bg (success green) to Primer's own "done"/Copilot purple (btn.done.emphasis ≈
 // #8957E5) — chosen over the alternatives (Linear-style indigo, flame orange) because it also
 // extends LeaderboardScreen's pre-existing blue-purple #1 gradient into the app's main accent
@@ -18,12 +16,23 @@ import androidx.compose.ui.graphics.Color
 // (button fill role) and near-identical luminance to the old green against dark surfaces
 // (foreground/icon-tint role), so no accessibility regression from the swap. Error still traces
 // to Primer's btn.danger.bg (untouched — only the like/right side of the swipe pair changed).
-private val DarkSurface = Color(0xFF0A0A0B)
-private val DarkSurfaceDim = Color(0xFF050506)
+//
+// **Update (2026-09-01):** background/surface/surfaceDim pushed from near-black (#0A0A0B) to
+// true #000000 per explicit user request for a more modern true-black look — the earlier
+// off-black choice traded that look away specifically to avoid OLED smearing on scroll, so
+// revisit that tradeoff if scrolling smear complaints show up on OLED devices. surfaceContainer
+// and up are untouched (still the lighter charcoal ramp) so raised cards keep reading as raised
+// against the now-pure-black canvas.
+private val DarkSurface = Color(0xFF000000)
+private val DarkSurfaceDim = Color(0xFF000000)
 private val DarkSurfaceBright = Color(0xFF3A3A3D)
 private val DarkSurfaceContainerLowest = Color(0xFF000000)
 private val DarkSurfaceContainerLow = Color(0xFF121214)
-private val DarkSurfaceContainer = Color(0xFF1C1C1F) // "tam koyu gri" — repo card background
+
+// Darkened again (2026-09-03, explicit user request) from #18181B to sit right next to true
+// black — card boundary still reads fine since the card also carries its own 1dp onSurface-alpha
+// border, so it doesn't depend on fill-color contrast against the page background alone.
+private val DarkSurfaceContainer = Color(0xFF0E0E10) // repo card background
 private val DarkSurfaceContainerHigh = Color(0xFF26262A)
 private val DarkSurfaceContainerHighest = Color(0xFF323235)
 private val DarkOnSurface = Color(0xFFF2F2F4)
@@ -34,9 +43,17 @@ private val DarkOutline = Color(0xFF6E6E76)
 private val DarkOutlineVariant = Color(0xFF323235)
 private val DarkPrimary = Color(0xFFF2F2F4) // general text/icon color
 private val DarkOnPrimary = Color(0xFF0A0A0B)
-private val DarkPrimaryContainer = Color(0xFF8957E5) // swipe-right/like — Primer done.emphasis (purple)
+
+// French-tricolor reskin exploration (2026-09-04, user request): the purple accent ("Matte
+// Neutral + Violet") didn't land, so the app's general accent role — quick-view button, filter
+// chips, selected states, brand shimmer/glow (see BrandAccent below), everywhere else that isn't
+// the reject/like/nav-active red — moves to this GitHub-blue, matching the blue LeaderboardScreen
+// already used as the #1 gradient's start stop rather than introducing an unrelated new hue. The
+// like/right swipe action itself moved to red instead (see SwipeScreen.kt's Like button + the
+// SwipeRightOverlay override below) rather than following this accent.
+private val DarkPrimaryContainer = Color(0xFF0969DA)
 private val DarkOnPrimaryContainer = Color(0xFFFFFFFF)
-private val DarkInversePrimary = Color(0xFF8957E5)
+private val DarkInversePrimary = Color(0xFF0969DA)
 private val DarkSecondary = Color(0xFF9C9CA3) // muted text/icons
 private val DarkOnSecondary = Color(0xFF0A0A0B)
 private val DarkSecondaryContainer = Color(0xFF26262A)
@@ -49,18 +66,28 @@ private val DarkError = Color(0xFFDA3633) // swipe-left/pass — Primer btn.dang
 private val DarkOnError = Color(0xFFFFFFFF)
 private val DarkErrorContainer = Color(0xFF93000A)
 private val DarkOnErrorContainer = Color(0xFFFFDAD6)
-private val DarkBackground = Color(0xFF0A0A0B)
+private val DarkBackground = Color(0xFF000000)
 private val DarkOnBackground = Color(0xFFF2F2F4)
 private val DarkSurfaceVariant = Color(0xFF26262A)
 
-// Brand accent referenced directly by glass components (floating logo badge, primary CTA glow,
-// swipe-right drag feedback) — GitHub's own Copilot/"done" purple, replacing the "GitHub Dark
-// Modern" success green (which itself replaced the original retired Lumina lime).
-val BrandAccent = Color(0xFF8957E5)
+// Brand accent referenced directly by glass components (floating logo badge, primary CTA glow) —
+// kept in sync with DarkPrimaryContainer above (GitHub-blue, replacing the "Matte Neutral +
+// Violet" purple, which itself replaced "GitHub Dark Modern"'s success green).
+val BrandAccent = Color(0xFF0969DA)
 
 // Deliberate one-off accent for the "View on GitHub" CTA in y_ld_zlananlar_reposwipe/code.html —
 // a GitHub-blue outbound-link color kept distinct from the lime in-app action color.
 val GitHubBlue = Color(0xFF0A66C2)
+
+// French-tricolor reskin exploration (2026-09-04, user request, from the Stitch "Rendez-vous"
+// reference's own navy pair #051937/#0B2545): a deep "Parisian night" navy for the swipe card's
+// own background specifically — not the shared surfaceContainer token, which stays untouched
+// everywhere else it's used (detail-sheet stat tiles, README panel, similar-repo cards, etc.).
+// Kept identical in both themes per explicit ask, which is why RepoCard's own text/chip colors
+// are hardcoded to fixed light tones rather than the usual theme-driven primary/secondary
+// tokens — those tokens flip dark-on-light in light mode (by design, for every *other* light
+// surface in the app), which would go illegible against a card background that no longer flips.
+val CardBackgroundNavy = Color(0xFF0B2545)
 
 val RepoSwipeDarkColorScheme =
     darkColorScheme(
@@ -211,10 +238,12 @@ val RepoSwipeLightColorScheme =
         surfaceContainerLowest = LightSurfaceContainerLowest,
     )
 
-// Repo card swipe-feedback overlays — kept in sync with the "GitHub Dark Modern" like/pass
-// button colors (see [DarkPrimaryContainer]/[DarkError]) rather than the original mockup's
-// lime/coral glow, so the drag feedback visually matches the buttons it previews the outcome of.
-val SwipeRightOverlay = BrandAccent
+// Repo card swipe-feedback overlays — kept in sync with the Like/Pass button colors so the drag
+// feedback visually matches the buttons it previews the outcome of. Both are red now (2026-09-04,
+// user request) since the Like button itself moved off the blue brand accent to a filled-red
+// heart — see SwipeScreen.kt's Like [SwipeActionButton]. Same literal red in both cases,
+// independent of [DarkError]/light theme's error tone, matching how this pair worked before.
+val SwipeRightOverlay = Color(0xFFDA3633)
 val SwipeLeftOverlay = Color(0xFFDA3633)
 
 // GitHub language-badge dot colors referenced in the mockups

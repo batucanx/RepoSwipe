@@ -2,6 +2,7 @@ package com.batuhan.reposwipe.core.designsystem.icon
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
@@ -38,14 +39,23 @@ import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Terminal
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import com.batuhan.reposwipe.core.designsystem.R
 
 /** Central mapping from the mockups' Material Symbols glyph names to Compose Material Icons. */
 object RepoSwipeIcons {
     val Menu = Icons.Outlined.Menu
-    val Filters = Icons.Outlined.Tune
+    val Back = Icons.AutoMirrored.Outlined.ArrowBack
+
+    // Custom brand glyph (see res/drawable/ic_filter.xml) rather than the stock Icons.Outlined.Tune
+    // — resource-backed vectors need a Composable context to resolve, unlike the plain Icons.*
+    // constants above, so this is the one entry in this object that's a @Composable getter.
+    val Filters: ImageVector
+        @Composable get() = ImageVector.vectorResource(id = R.drawable.ic_filter)
     val Search = Icons.Outlined.Search
     val Discover = Icons.Outlined.Explore
     val DiscoverFilled = Icons.Filled.Explore

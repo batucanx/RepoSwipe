@@ -78,15 +78,19 @@ fun RepoSwipeBottomNavBar(
             // A soft tinted pill rather than a solid opaque fill — the accent color itself carries
             // the selected state instead of switching to white-on-purple, matching the tinted
             // "selected" treatment RepoSwipeFilterChip's outlined variant already uses elsewhere.
+            // Uses the shared error/red token (not primaryContainer) for the selected tab —
+            // French-tricolor reskin exploration (2026-09-04, user request): the reference marks
+            // its active nav tab in the same crimson red as its reject/pass action, so this reuses
+            // the app's existing reject-red rather than introducing a new color.
             val contentColor =
                 if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
+                    MaterialTheme.colorScheme.error
                 } else {
                     MaterialTheme.colorScheme.secondary
                 }
             val backgroundColor =
                 if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.16f)
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.16f)
                 } else {
                     Color.Transparent
                 }

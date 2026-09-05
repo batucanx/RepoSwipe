@@ -4,6 +4,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+
+private val LocalRepoSwipeDarkTheme = staticCompositionLocalOf { true }
 
 @Composable
 fun RepoSwipeTheme(
@@ -13,6 +16,7 @@ fun RepoSwipeTheme(
     CompositionLocalProvider(
         LocalRepoSwipeSpacing provides RepoSwipeSpacing(),
         LocalRepoSwipeTypography provides defaultRepoSwipeTypography,
+        LocalRepoSwipeDarkTheme provides darkTheme,
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) RepoSwipeDarkColorScheme else RepoSwipeLightColorScheme,
@@ -30,4 +34,7 @@ object RepoSwipeTheme {
 
     val spacing: RepoSwipeSpacing
         @Composable get() = LocalRepoSwipeSpacing.current
+
+    val isDarkTheme: Boolean
+        @Composable get() = LocalRepoSwipeDarkTheme.current
 }

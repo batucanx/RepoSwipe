@@ -1,5 +1,6 @@
 package com.batuhan.reposwipe.core.designsystem.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.batuhan.reposwipe.core.designsystem.R
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
+import com.batuhan.reposwipe.core.designsystem.theme.CardBackgroundNavy
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import androidx.compose.foundation.layout.Column as ColumnLayout
 
@@ -35,7 +38,15 @@ data class UserListItemData(
     val isFollowing: Boolean,
 )
 
-/** Glass-card list row for Followers/Following — avatar+name/@login, trailing follow toggle. */
+/**
+ * List row for Followers/Following — avatar+name/@login, trailing follow toggle.
+ *
+ * Fixed [CardBackgroundNavy] rather than the theme-driven `surfaceContainer` glass treatment other
+ * rows use — matching [RepoCard]/[RepoListItem], which read a pale "whitish" card on light theme's
+ * near-white page otherwise. Text/buttons below use fixed light tones for the same reason:
+ * `primary`/`secondary` flip dark-on-light in light mode and would go illegible on a card that no
+ * longer flips with them.
+ */
 @Composable
 fun UserListItem(
     data: UserListItemData,
@@ -47,8 +58,7 @@ fun UserListItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f), shape)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), shape)
+                .navyCardSurface(shape)
                 .padding(RepoSwipeTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -70,14 +80,14 @@ fun UserListItem(
             Text(
                 text = data.displayName ?: data.login,
                 style = RepoSwipeTheme.typography.bodyLg,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "@${data.login}",
                 style = RepoSwipeTheme.typography.labelMd,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Color.White.copy(alpha = 0.72f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -86,7 +96,12 @@ fun UserListItem(
         Spacer(modifier = Modifier.size(RepoSwipeTheme.spacing.sm))
 
         if (data.isFollowing) {
-            OutlinedButton(onClick = onToggleFollow, shape = MaterialTheme.shapes.extraLarge) {
+            OutlinedButton(
+                onClick = onToggleFollow,
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+            ) {
                 Icon(
                     imageVector = RepoSwipeIcons.FollowRemove,
                     contentDescription = stringResource(R.string.user_list_item_unfollow_cd),
@@ -101,7 +116,7 @@ fun UserListItem(
             Button(
                 onClick = onToggleFollow,
                 shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = CardBackgroundNavy),
             ) {
                 Icon(
                     imageVector = RepoSwipeIcons.FollowAdd,

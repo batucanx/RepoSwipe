@@ -1,0 +1,47 @@
+<!--
+  Custom "filter sliders" glyph (2 rows, mirrored knob positions) — replaces Material's stock
+  Icons.Outlined.Tune. Traced from the supplied app_icon/filter.png by measuring its pixel mask
+  (512x512 canvas, 32px margins, 32px stroke, knobs of outer radius 80 / inner radius 48 centered
+  ±80px from the canvas center on both axes) rather than eyeballing it, so this reproduces that
+  source asset's geometry exactly while staying a tintable vector like every other RepoSwipeIcons
+  entry instead of a fixed-color raster needing per-density exports.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <!-- Top row: long line on the left, knob right-of-center -->
+    <path
+        android:pathData="M32,176 L256,176"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="32"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M416,176 L480,176"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="32"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M336,176 m-64,0 a64,64 0 1,0 128,0 a64,64 0 1,0 -128,0"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="32"
+        android:fillColor="#00000000" />
+
+    <!-- Bottom row: short line on the left, knob left-of-center (mirrors the top row) -->
+    <path
+        android:pathData="M32,336 L96,336"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="32"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M256,336 L480,336"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="32"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M176,336 m-64,0 a64,64 0 1,0 128,0 a64,64 0 1,0 -128,0"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="32"
+        android:fillColor="#00000000" />
+</vector>

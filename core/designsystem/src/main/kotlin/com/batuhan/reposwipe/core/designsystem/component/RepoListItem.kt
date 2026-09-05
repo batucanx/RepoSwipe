@@ -2,6 +2,7 @@ package com.batuhan.reposwipe.core.designsystem.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -42,21 +44,42 @@ data class RepoListItemData(
     val languageColor: Color? = null,
 )
 
-/** Glass-card list row for "My Stars" — repo icon+name, star toggle, description, stats, CTA. */
+/**
+ * List row for "My Stars"/search/trending — repo icon+name, star toggle, description, stats, and
+ * a primary CTA whose label/icon/action the caller controls (e.g. "View on GitHub" for Starred vs.
+ * "View Details" to open the in-app repo detail screen from Search).
+ *
+ * [onCardClick], when non-null, makes the row itself open the in-app repo detail screen (Starred:
+ * "View on GitHub" stays a distinct explicit action for actually leaving the app, while tapping
+ * anywhere else on the card opens details in-app) — nested per Compose's normal click-consumption
+ * so the CTA button/star/share icons still handle their own taps first. Left null (default) where
+ * a caller's CTA button already *is* the "open details" action (Search's "View Details"), so the
+ * row isn't redundantly double-clickable to the same destination.
+ *
+ * Fixed navy background ([navyCardSurface]) rather than the theme-driven `surfaceContainer` glass
+ * treatment other list rows use — matching [RepoCard]'s own card, which reads a pale/washed-out
+ * "whitish" card on light theme's near-white page otherwise. Same as there, every text/icon color is a fixed
+ * light tone rather than the usual `primary`/`secondary`/`onSurface` tokens, since those flip
+ * dark-on-light in light mode and would go illegible against a card that no longer flips with them.
+ */
 @Composable
 fun RepoListItem(
     data: RepoListItemData,
     onToggleStar: () -> Unit,
-    onOpenGitHub: () -> Unit,
+    onViewClick: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
+    viewActionLabel: String = stringResource(R.string.repo_list_item_view_on_github),
+    viewActionIcon: ImageVector = RepoSwipeIcons.OpenExternal,
+    onCardClick: (() -> Unit)? = null,
 ) {
     val shape = MaterialTheme.shapes.large
     Column(
         modifier =
             modifier
-                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f), shape)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), shape)
+                .clip(shape)
+                .navyCardSurface(shape)
+                .then(if (onCardClick != null) Modifier.clickable(onClick = onCardClick) else Modifier)
                 .padding(RepoSwipeTheme.spacing.lg),
         verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.sm),
     ) {
@@ -74,20 +97,20 @@ fun RepoListItem(
                     modifier =
                         Modifier
                             .size(24.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(6.dp)),
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(6.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = RepoSwipeIcons.Repo,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = Color.White,
                         modifier = Modifier.size(14.dp),
                     )
                 }
                 Text(
                     text = data.ownerRepoLabel,
                     style = RepoSwipeTheme.typography.bodyLg.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -97,7 +120,7 @@ fun RepoListItem(
                     Icon(
                         imageVector = RepoSwipeIcons.Share,
                         contentDescription = stringResource(R.string.repo_list_item_share_cd),
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = Color.White.copy(alpha = 0.72f),
                     )
                 }
                 IconButton(onClick = onToggleStar) {
@@ -109,7 +132,7 @@ fun RepoListItem(
                             } else {
                                 stringResource(R.string.repo_list_item_star_cd)
                             },
-                        tint = MaterialTheme.colorScheme.primaryContainer,
+                        tint = Color.White,
                     )
                 }
             }
@@ -118,7 +141,7 @@ fun RepoListItem(
         Text(
             text = data.description,
             style = RepoSwipeTheme.typography.bodySm,
-            color = MaterialTheme.colorScheme.secondary,
+            color = Color.White.copy(alpha = 0.82f),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -136,12 +159,12 @@ fun RepoListItem(
                         modifier =
                             Modifier
                                 .size(10.dp)
-                                .background(data.languageColor ?: MaterialTheme.colorScheme.outline, CircleShape),
+                                .background(data.languageColor ?: Color.White.copy(alpha = 0.5f), CircleShape),
                     )
                     Text(
                         text = data.languageName,
                         style = RepoSwipeTheme.typography.labelMd,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = Color.White.copy(alpha = 0.72f),
                     )
                 }
             }
@@ -150,14 +173,14 @@ fun RepoListItem(
         }
 
         Button(
-            onClick = onOpenGitHub,
+            onClick = onViewClick,
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.small,
             colors = ButtonDefaults.buttonColors(containerColor = GitHubBlue),
         ) {
-            Text(text = stringResource(R.string.repo_list_item_view_on_github), color = Color.White)
+            Text(text = viewActionLabel, color = Color.White)
             Icon(
-                imageVector = RepoSwipeIcons.OpenExternal,
+                imageVector = viewActionIcon,
                 contentDescription = null,
                 tint = Color.White,
                 modifier =
@@ -181,13 +204,13 @@ private fun StatLabel(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
+            tint = Color.White.copy(alpha = 0.72f),
             modifier = Modifier.size(14.dp),
         )
         Text(
             text = value,
             style = RepoSwipeTheme.typography.labelMd,
-            color = MaterialTheme.colorScheme.secondary,
+            color = Color.White.copy(alpha = 0.72f),
         )
     }
 }

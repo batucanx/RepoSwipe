@@ -148,9 +148,12 @@ fun rememberSwipeDeckState(): SwipeDeckState = remember { SwipeDeckState() }
 /** A card mid-flight after committing, rendered independently of `items`/the front/background
  * stack so its exit animation finishes on its own schedule — see [SwipeDeck]'s doc comment. Plain
  * (not data) class: referential equality is exactly what's wanted for the `key()` each instance is
- * used with below, since two exits of the same [item] are still two distinct flights. */
+ * used with below, since two exits of the same [item] are still two distinct flights. [key] is
+ * cached from the caller's `itemKey(item)` at commit time so the main stack loop can cheaply check
+ * "is this item already exiting" without re-deriving a key from `item` every recomposition. */
 private class ExitingCard<T>(
     val item: T,
+    val key: Any,
     val direction: SwipeDirection,
     val offset: Animatable<Offset, AnimationVector2D>,
 )
@@ -172,6 +175,17 @@ private class ExitingCard<T>(
  * animation had nothing to land on (the next card had no gesture handling until the stack
  * advanced), which read as the deck "not registering" quick successive input.
  *
+ * The main stack loop below explicitly skips any item already present in [exitingCards] rather
+ * than trusting `items` to have dropped it by the time this recomposes. `state.offset` (the front
+ * card's live drag position) is snapped back to zero the instant a swipe commits — needed so the
+ * *next* card starts from a clean offset once it's promoted — but `items` only reflects that same
+ * swipe once the caller's own state (typically a ViewModel index bump) round-trips back through
+ * recomposition, which is not guaranteed to land in the same frame. Left unskipped, the
+ * just-committed card kept its old stack slot for however many frames that round trip took, now
+ * reading `state.offset` as zero — i.e. it visibly snapped back to dead center and sat there,
+ * looking exactly like a stuck/ghost duplicate of the card that was otherwise correctly flying
+ * away via its [ExitingCard] overlay.
+ *
  * The drag gesture itself isn't reachable by TalkBack, so the front card also exposes
  * [leftActionLabel]/[rightActionLabel] as accessibility custom actions — matching the visible
  * action buttons the caller renders alongside this deck.
@@ -186,13 +200,23 @@ fun <T> SwipeDeck(
     onSwiped: (item: T, direction: SwipeDirection) -> Unit,
     modifier: Modifier = Modifier,
     state: SwipeDeckState = rememberSwipeDeckState(),
-    leftActionLabel: String = "Sola kaydır",
-    rightActionLabel: String = "Sağa kaydır",
+    leftActionLabel: String = "Swipe left",
+    rightActionLabel: String = "Swipe right",
     onCardTap: ((item: T) -> Unit)? = null,
     content: @Composable (item: T) -> Unit,
 ) {
     val visible = items.take(MAX_VISIBLE_CARDS)
     val density = LocalDensity.current
+    // ROTATION_DIVISOR mirrors code.html's `dx / 20`, calibrated against CSS px (≈dp) in that
+    // reference. state.offset/exitingCard.offset track raw pointer-drag pixels, which on any
+    // screen denser than 1x are a multiple of dp — dividing them by ROTATION_DIVISOR directly
+    // scaled the tilt by that same density factor (e.g. ~3x on a 3x-density phone), so a drag
+    // that should read as a ~7-20° tilt spun the card 60-85° instead, sweeping a rotated corner
+    // (showing that card's own header color) out past the deck's opposite edge mid-swipe/exit —
+    // the "notch" reported on the trailing side of a swipe. Folding the density factor into the
+    // divisor once here keeps the rotation in the dp-equivalent range the mockup intends,
+    // regardless of screen density.
+    val rotationDivisorPx = ROTATION_DIVISOR * density.density
     val externalScope = rememberCoroutineScope()
     val exitingCards = remember { mutableStateListOf<ExitingCard<T>>() }
 
@@ -205,12 +229,16 @@ fun <T> SwipeDeck(
         visible.asReversed().forEachIndexed { reversedIndex, item ->
             val stackIndex = visible.size - 1 - reversedIndex
             val isFront = stackIndex == 0
-            key(itemKey(item)) {
+            val keyForItem = itemKey(item)
+            // Already animating away via the overlay below — see this function's doc comment for
+            // why `items` can still list it here for a stale frame or two after it committed.
+            if (exitingCards.any { it.key == keyForItem }) return@forEachIndexed
+            key(keyForItem) {
                 if (isFront) {
                     state.onCommit = { direction -> onSwiped(item, direction) }
                     state.onExitRequested = { direction, startOffset, velocity ->
                         val exitOffset = Animatable(startOffset, Offset.VectorConverter)
-                        val exitingCard = ExitingCard(item = item, direction = direction, offset = exitOffset)
+                        val exitingCard = ExitingCard(item = item, key = keyForItem, direction = direction, offset = exitOffset)
                         exitingCards.add(exitingCard)
                         externalScope.launch {
                             val targetX = if (direction == SwipeDirection.Right) state.exitDistancePx else -state.exitDistancePx
@@ -242,12 +270,12 @@ fun <T> SwipeDeck(
                                 scaleY = animatedScale
                                 translationX = if (isFront) state.offset.value.x else 0f
                                 translationY = if (isFront) state.offset.value.y else 0f
-                                rotationZ = if (isFront) state.offset.value.x / ROTATION_DIVISOR else animatedRotation
+                                rotationZ = if (isFront) state.offset.value.x / rotationDivisorPx else animatedRotation
                                 alpha = animatedAlpha
                             }.then(
                                 if (isFront) {
                                     Modifier.frontCardGestures(
-                                        key = itemKey(item),
+                                        key = keyForItem,
                                         item = item,
                                         state = state,
                                         externalScope = externalScope,
@@ -286,7 +314,7 @@ fun <T> SwipeDeck(
                             .graphicsLayer {
                                 translationX = exitingCard.offset.value.x
                                 translationY = exitingCard.offset.value.y
-                                rotationZ = exitingCard.offset.value.x / ROTATION_DIVISOR
+                                rotationZ = exitingCard.offset.value.x / rotationDivisorPx
                             },
                 ) {
                     content(exitingCard.item)
@@ -415,18 +443,28 @@ private data class BackgroundDepth(
 
 private val FRONT_DEPTH = BackgroundDepth(scale = 1f, rotationDeg = 0f, alpha = 1f)
 
-// Matches ke_fet_reposwipe/code.html's single shadow layer (scale-95 -rotate-1 opacity-40);
-// a 2nd entry extrapolates the same progression for the rare 3-card-deep peek.
+// code.html's reference (scale-95 -rotate-1 opacity-40) is a plain shadow shape behind the deck,
+// not a full rendered card — this app instead peeks the *real* next RepoCard at that opacity,
+// and in dark theme its own dark surfaceContainer background all but disappears against the
+// page's near-black background at 40% alpha, while its light onSurface text doesn't — so what
+// actually showed through was legible ghost text (title/stats/description), not a subtle shadow.
+// Dropping the opacity further (down from 0.4/0.2) keeps just enough of a peeking-card silhouette
+// for depth without the text underneath being readable.
 private val BACKGROUND_DEPTH =
     listOf(
-        BackgroundDepth(scale = 0.95f, rotationDeg = -1f, alpha = 0.4f),
-        BackgroundDepth(scale = 0.90f, rotationDeg = -2f, alpha = 0.2f),
+        BackgroundDepth(scale = 0.95f, rotationDeg = -1f, alpha = 0.12f),
+        BackgroundDepth(scale = 0.90f, rotationDeg = -2f, alpha = 0.05f),
     )
 
 private fun depthTargetFor(stackIndex: Int): BackgroundDepth =
     if (stackIndex == 0) FRONT_DEPTH else BACKGROUND_DEPTH.getOrElse(stackIndex - 1) { BACKGROUND_DEPTH.last() }
 
-private val STACK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
+// MediumBouncy (0.2 damping ratio) at StiffnessMediumLow used to take close to a second to fully
+// settle its oscillation — every promoted card kept visibly rocking in scale/rotation for a beat
+// after a swipe, reading as sluggish rather than the crisp, near-instant snap real Tinder uses.
+// A touch of bounce still reads as "alive" rather than mechanical, but at this stiffness it
+// settles in well under 150ms instead of trailing off for the better part of a second.
+private val STACK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium)
 
 private const val MAX_VISIBLE_CARDS = 3
 private const val SWIPE_HINT_DP = 50f

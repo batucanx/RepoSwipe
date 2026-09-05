@@ -47,7 +47,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
     ) {
-        // A soft brand-purple glow behind whatever icon/tint the caller passes, rather than a flat
+        // A soft brand-accent glow behind whatever icon/tint the caller passes, rather than a flat
         // gray circle — a consistent bit of "character" shared by every empty/error state.
         Box(
             modifier =

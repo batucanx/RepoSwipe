@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -22,7 +23,15 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 
-/** Avatar + name/username + a single trailing stat — used by "My Stars" and the Profile tab. */
+/**
+ * Avatar + name/username + a single trailing stat — used by "My Stars" and the Profile tab.
+ *
+ * Fixed navy background ([navyCardSurface]) rather than the theme-driven `surfaceContainer` glass
+ * treatment other rows use — matching [RepoCard]/[RepoListItem], which read a pale "whitish" card on light theme's
+ * near-white page otherwise. Text below is a fixed light tone for the same reason: `primary`/
+ * `secondary` flip dark-on-light in light mode and would go illegible on a card that no longer
+ * flips with them.
+ */
 @Composable
 fun UserProfileHeader(
     avatarUrl: String?,
@@ -37,8 +46,7 @@ fun UserProfileHeader(
         modifier =
             modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f), shape)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), shape)
+                .navyCardSurface(shape)
                 .padding(RepoSwipeTheme.spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -63,14 +71,14 @@ fun UserProfileHeader(
                 // names run longer (e.g. three words) and were wrapping to 3 lines here — sized
                 // down and capped so any real name still fits cleanly.
                 style = RepoSwipeTheme.typography.headlineMd.copy(fontSize = 20.sp, lineHeight = 24.sp),
-                color = MaterialTheme.colorScheme.primary,
+                color = Color.White,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "@$username",
                 style = RepoSwipeTheme.typography.labelMd,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Color.White.copy(alpha = 0.72f),
             )
         }
 
@@ -78,12 +86,12 @@ fun UserProfileHeader(
             Text(
                 text = statValue,
                 style = RepoSwipeTheme.typography.headlineMd,
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = Color.White,
             )
             Text(
                 text = statLabel.uppercase(),
                 style = RepoSwipeTheme.typography.labelMd,
-                color = MaterialTheme.colorScheme.secondary,
+                color = Color.White.copy(alpha = 0.72f),
             )
         }
     }
