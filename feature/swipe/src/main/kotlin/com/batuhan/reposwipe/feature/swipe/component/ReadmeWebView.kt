@@ -1,6 +1,7 @@
 package com.batuhan.reposwipe.feature.swipe.component
 
 import android.content.Context
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
@@ -11,14 +12,17 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,30 +30,99 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
+import kotlin.math.min
 import kotlin.math.roundToInt
 import android.graphics.Color as AndroidColor
 
 /**
- * Every http/https navigation is handed off to Chrome Custom Tabs rather than loaded in place —
- * unlike the rest of this detail sheet (see [RepoDetailSheet]'s doc), a README's links/badges are
- * GitHub's own content and tapping one is expected to go somewhere, the same as it would on
- * github.com itself. The one exception is an in-page `#heading` anchor (GitHub's own generated
- * heading-permalink icons use these): that's left for the WebView to resolve natively as a
- * same-document scroll instead of bouncing out to a browser for it.
+ * A [WebView] whose own touch handling can be switched off. In [ReadmeViewMode.Preview] the
+ * loaded document is routinely taller than this View's own (deliberately capped) height, and if
+ * the WebView handled touches as it normally would, a drag starting inside it would scroll the
+ * *document* internally instead of whatever scrolls around it (the detail sheet's LazyColumn) —
+ * the classic embedded-scroller-steals-the-parent's-drag bug. Returning `false` from
+ * [onTouchEvent] is the standard Android mechanism for "this View declines the gesture": the
+ * touch then continues up to the nearest ancestor that wants it — here, a `clickable` Compose
+ * modifier wrapping this WebView in [ReadmeWebView], which is how a tap anywhere on the preview
+ * opens [ReadmeViewMode.Read]. Read mode flips [touchEnabled] back on, since at that point the
+ * WebView is the only scroller on screen (see [ReadmeWebView]'s doc for why the sheet hides every
+ * other section while reading).
+ */
+class ScrollGatedWebView(
+    context: Context,
+) : WebView(context) {
+    var touchEnabled: Boolean = true
+
+    /**
+     * The preview temporarily leaves composition while the fullscreen reader is open, but this
+     * native View deliberately survives that mode switch. Keep the document's render state on
+     * the View as well: when the preview is attached again there is no second page-load callback
+     * to rebuild short-lived Compose state from.
+     */
+    internal var loadedDocument: String? = null
+    internal var visibleDocument: String? = null
+    internal var measuredDocumentHeightPx: Int = 0
+
+    override fun onTouchEvent(event: MotionEvent): Boolean = if (touchEnabled) super.onTouchEvent(event) else false
+}
+
+/**
+ * Creates and configures a screen-scoped [ScrollGatedWebView]. Keep one instance per stable
+ * [ReadmeWebView] call site: Android Views must not be shared between the preview and fullscreen
+ * reader because both call sites can briefly coexist during a Compose structural transition.
  *
- * [onContentHeightChanged] is how [ReadmeWebView] gets told how tall to lay itself out — see that
- * composable's doc for why this replaced a `WebView.onMeasure` override.
+ * The application context avoids retaining an Activity, while [DisposableEffect] deterministically
+ * releases native WebView resources when the detail screen leaves composition.
+ */
+@Composable
+fun rememberReadmeWebView(): ScrollGatedWebView {
+    val context = LocalContext.current
+    val webView =
+        remember {
+            ScrollGatedWebView(context.applicationContext).apply {
+                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                setBackgroundColor(AndroidColor.TRANSPARENT)
+                overScrollMode = View.OVER_SCROLL_NEVER
+                isVerticalScrollBarEnabled = false
+                isHorizontalScrollBarEnabled = false
+                settings.javaScriptEnabled = false
+                settings.useWideViewPort = true
+                settings.loadWithOverviewMode = true
+            }
+        }
+    DisposableEffect(webView) {
+        onDispose {
+            (webView.parent as? ViewGroup)?.removeView(webView)
+            webView.stopLoading()
+            webView.removeAllViews()
+            webView.destroy()
+        }
+    }
+    return webView
+}
+
+/**
+ * Every http/https navigation is handed off to Chrome Custom Tabs rather than loaded in place —
+ * a README's links/badges are GitHub's own content and tapping one is expected to go somewhere,
+ * the same as it would on github.com itself. The one exception is an in-page `#heading` anchor
+ * (GitHub's own generated heading-permalink icons use these): that's left for the WebView to
+ * resolve natively as a same-document scroll instead of bouncing out to a browser for it.
+ *
+ * [onContentHeightChanged] is how [ReadmeWebView] learns the *full* document height even while
+ * [ReadmeViewMode.Preview] keeps the View's own on-screen height capped — [WebView.getContentHeight]
+ * reflects the loaded page's true layout size regardless of the View's own bounds, which is what
+ * lets a capped preview still know whether there's more to read.
  */
 private class ReadmeWebViewClient(
     private val context: Context,
     private val onContentHeightChanged: (Int) -> Unit,
+    private val onPageVisible: () -> Unit,
 ) : WebViewClient() {
     override fun shouldOverrideUrlLoading(
         view: WebView,
@@ -66,6 +139,7 @@ private class ReadmeWebViewClient(
         view: WebView,
         url: String?,
     ) {
+        onPageVisible()
         reportHeight(view)
         // onPageFinished fires once the HTML/CSS parses — a README's own images (badges,
         // screenshots) are still streaming in from raw.githubusercontent.com at that point, so
@@ -75,22 +149,39 @@ private class ReadmeWebViewClient(
         view.postDelayed({ reportHeight(view) }, IMAGE_SETTLE_DELAY_MS)
     }
 
-    // WebView.getScale() is deprecated with no synchronous replacement (only an async
-    // onScaleChanged callback) — still the correct CSS-px-to-device-px conversion for a one-off
-    // height read, so this suppresses the warning rather than adding callback plumbing for it.
-    @Suppress("DEPRECATION")
-    private fun reportHeight(view: WebView) {
-        val heightPx = (view.contentHeight * view.scale).roundToInt()
-        // Coerced: Compose's Constraints can't represent every value a real Int can hold (it packs
-        // width/height into a fixed bit budget) and throws IllegalArgumentException past a certain
-        // magnitude — hit in practice by a fully expanded ("Devamını gör") README long enough that
-        // its real WebView content height landed just over that ceiling, crashing the app outright.
-        // MAX_REPORTED_HEIGHT_PX sits far below where Compose's limit actually is, so this only
-        // ever engages for a pathologically long document, and even then the WebView's own internal
-        // scrolling still makes the rest of the page reachable — capping the *container* doesn't
-        // clip content, since [ReadmeWebView] isn't the one that scrolls the sheet.
-        if (heightPx > 0) onContentHeightChanged(heightPx.coerceAtMost(MAX_REPORTED_HEIGHT_PX))
+    override fun onPageCommitVisible(
+        view: WebView,
+        url: String?,
+    ) {
+        onPageVisible()
+        view.post { reportHeight(view) }
     }
+
+    private fun reportHeight(view: WebView) {
+        val heightPx = contentHeightPx(view)
+        if (heightPx > 0) onContentHeightChanged(heightPx)
+    }
+}
+
+// WebView.getScale() is deprecated with no synchronous replacement (only an async onScaleChanged
+// callback) — still the correct CSS-px-to-device-px conversion for a one-off height read, so this
+// suppresses the warning rather than adding callback plumbing for it. Shared by
+// [ReadmeWebViewClient]'s callback-driven read and [ReadmeWebView]'s own reattachment probe below.
+@Suppress("DEPRECATION")
+private fun contentHeightPx(view: WebView): Int = (view.contentHeight * view.scale).roundToInt()
+
+/** Which of the two ways [ReadmeWebView] can present a loaded document. Owned by the caller
+ * ([com.batuhan.reposwipe.feature.swipe.SwipeScreen]'s `RepoDetailSheet`) since switching modes
+ * is a structural change — the sheet's other sections disappear entirely in [Read] — not
+ * something this composable can decide on its own. */
+enum class ReadmeViewMode {
+    /** Capped at a small height, non-scrolling, tap-anywhere-to-expand. Sits among the sheet's
+     * other sections. */
+    Preview,
+
+    /** Fills its container and scrolls internally — the sheet hides every other section while
+     * this is active, so the WebView is the only scroller on screen. */
+    Read,
 }
 
 /**
@@ -100,114 +191,147 @@ private class ReadmeWebViewClient(
  * of the markdown. JavaScript stays off: nothing in a README needs it to render, and it's a free
  * defense-in-depth layer against whatever a repo owner put in their README.
  *
- * **The document is loaded exactly once and never reloaded.** [maxVisibleHeightPx] collapses the
- * view by *clipping* an already-rendered full-height WebView, not by re-rendering a shortened copy
- * of the HTML. Earlier versions did the latter — swapping a truncated prefix document in and out
- * via `loadDataWithBaseURL` on every "Devamını gör" tap — and every jump/flicker bug this
- * composable accumulated traced back to it: a reload blanks the page and resets
- * [WebView.getContentHeight], so the container had to guess a height for the gap, and any guess
- * lower than the current one shrinks this item inside the detail sheet's scrolling `LazyColumn`,
- * which immediately clamps the list's scroll offset down to fit. That clamp *is* the "tapping
- * Devamını gör jumps back to the top" bug — the viewport got yanked, not just the content. With no
- * reload there is no gap to guess at: the full content is already laid out and measured behind the
- * clip, so expanding only ever grows the visible box and the user's scroll position stays put.
+ * **[webView] is caller-owned and not destroyed here** — [rememberReadmeWebView] owns cleanup.
+ * [onRelease] only detaches the View so the same stable call site can reuse it when a LazyColumn
+ * item leaves and later re-enters the viewport.
  *
- * The WebView is laid out at its full measured content height and the *parent* box clips it, so
- * the WebView never has anything to scroll internally — important, because an internally
- * scrollable WebView would swallow vertical drags that belong to the sheet's `LazyColumn`.
+ * The loaded document and its render state live on [ScrollGatedWebView], not only in `remember`,
+ * because the native View survives recompositions and LazyColumn disposal/re-attachment at its
+ * own stable call site. Preview and read mode deliberately use distinct native Views.
  *
- * That `LazyColumn` disposes this composable (and destroys its WebView) whenever the README
- * scrolls far enough out of the viewport, then rebuilds it on the way back. [initialContentHeightPx]
- * lets the caller hand the rebuilt instance the height it already knows this README measured, so
- * the rebuild doesn't collapse to [README_LOADING_PLACEHOLDER_DP] and re-grow — that shrink would
- * clamp the list's scroll offset, i.e. the same jump described above, just triggered by scrolling
- * instead of by tapping.
- *
- * Height is measured explicitly ([WebView.getContentHeight], reported from
- * [ReadmeWebViewClient.onPageFinished]) rather than by a `WebView` subclass self-reporting through
- * `onMeasure`/`computeVerticalScrollRange` — that approach (this composable's first version)
- * measures *during* Android's layout pass, which can run before the page has finished laying out
- * at its real width, yielding a stale, wrong-sized gap.
+ * [ReadmeViewMode.Preview] bounds the View's real height at [previewCapDp] — a genuine layout
+ * constraint, not the earlier "render full height, let the parent visually clip it" trick, which
+ * left the WebView's actual (unclipped) touch-receiving bounds larger than what was visible.
+ * [ScrollGatedWebView.touchEnabled] independently keeps it from scrolling itself while capped, so
+ * the two concerns (how tall it looks, whether it steals drags) are no longer coupled the way
+ * they were in that version.
  */
 @Composable
 fun ReadmeWebView(
+    webView: ScrollGatedWebView,
     html: String,
+    mode: ReadmeViewMode,
     modifier: Modifier = Modifier,
-    maxVisibleHeightPx: Int? = null,
-    initialContentHeightPx: Int = 0,
+    previewCapDp: Int = README_PREVIEW_CAP_DP,
+    onExpandRequested: () -> Unit = {},
     onContentHeightMeasured: (Int) -> Unit = {},
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val darkTheme = isSystemInDarkTheme()
+    val darkTheme = RepoSwipeTheme.isDarkTheme
     val css = remember(context, darkTheme) { loadMarkdownCss(context, darkTheme) }
     val document = remember(html, css) { wrapReadmeHtml(html, css) }
-    var contentHeightPx by remember { mutableIntStateOf(initialContentHeightPx) }
-    var loadedDocument by remember { mutableStateOf<String?>(null) }
-    // Real Android WebView engine spin-up (especially the very first one in the process) plus
-    // parsing the document is genuinely async work with nothing driving Compose recomposition in
-    // between — until [ReadmeWebViewClient.onPageFinished] fires and reports a real height, this
-    // composable had nothing to say about it, so it rendered at its initial 0dp: no spinner, no
-    // content, nothing — reading as the README having silently failed to load rather than still
-    // being on its way. [contentHeightPx] doubles as that signal, and since the document is loaded
-    // only once it can never fall back to 0 later, so the placeholder + spinner show exactly for
-    // that first-load gap and never again — a caller-seeded [initialContentHeightPx] skips even
-    // that, since a re-inflated WebView is re-rendering something the reader has already seen.
-    val isAwaitingFirstMeasurement = contentHeightPx == 0
+
+    // Keyed on html (not the repo, which the caller doesn't hand us) so a different README
+    // starts the "how tall is this really" measurement over, while switching Preview ↔ Read for
+    // the *same* html keeps whatever was already measured.
+    //
+    // A View reattached with a [document] it already finished loading (e.g. backing out of Read
+    // mode) may never receive another onPageFinished/onPageCommitVisible: those fire at most once
+    // per load, and onPageCommitVisible specifically needs a Surface to paint into that a detached
+    // View doesn't have — see ScrollGatedWebView's doc. [contentHeightPx] needs no window to be
+    // accurate, since it reflects the page's already-computed layout, so it's read directly here
+    // as a one-time fallback. This is only safe to trust exactly here, at fresh composition entry:
+    // `webView.loadedDocument == document` is true only when nothing in *this* recomposition pass
+    // dispatched a new load for a *different* document — a genuine document change leaves
+    // `webView.loadedDocument` holding the *previous* document at this point (the reload that
+    // updates it hasn't run yet), which fails the check and skips the probe.
+    val hasMatchingLoad = webView.loadedDocument == document
+    var measuredContentHeightPx by
+        remember(webView, document) {
+            val recoveredHeightPx = if (hasMatchingLoad) contentHeightPx(webView).takeIf { it > 0 } else null
+            mutableIntStateOf(recoveredHeightPx ?: if (hasMatchingLoad) webView.measuredDocumentHeightPx else 0)
+        }
+    var isPageVisible by
+        remember(webView, document) {
+            mutableStateOf(webView.visibleDocument == document || (hasMatchingLoad && contentHeightPx(webView) > 0))
+        }
+
+    val capPx = with(density) { previewCapDp.dp.roundToPx() }
     val placeholderHeightPx = with(density) { README_LOADING_PLACEHOLDER_DP.dp.roundToPx() }
-    val fullHeightPx = if (isAwaitingFirstMeasurement) placeholderHeightPx else contentHeightPx
-    val visibleHeightPx = maxVisibleHeightPx?.coerceAtMost(fullHeightPx) ?: fullHeightPx
-    // Animates the initial grow-in and the "Devamını gör" reveal. Because the content behind the
-    // clip is already rendered, this is a pure size animation over finished pixels — nothing is
-    // loading or reflowing while it runs, which is what makes the reveal read as smooth rather
-    // than as a layout glitch, matching the rest of the app's animated transitions (e.g. SwipeDeck).
-    val animatedVisibleHeightPx by
+    val targetPreviewHeightPx =
+        if (measuredContentHeightPx == 0) placeholderHeightPx else min(measuredContentHeightPx, capPx)
+    // Animates the initial placeholder -> measured grow-in. Only relevant the first time a given
+    // README is ever shown this session — a repo revisited later already has its real height
+    // known (measuredContentHeightPx survives via the html key above only within one composition
+    // lifetime, but the WebView's own instant re-render from its retained document means even a
+    // fresh measurement lands within a frame or two, not a visible multi-hundred-ms grow).
+    val animatedPreviewHeightPx by
         animateIntAsState(
-            targetValue = visibleHeightPx,
+            targetValue = targetPreviewHeightPx,
             animationSpec = tween(durationMillis = EXPAND_ANIMATION_MS, easing = FastOutSlowInEasing),
-            label = "readmeVisibleHeight",
+            label = "readmePreviewHeight",
         )
 
+    val isPreview = mode == ReadmeViewMode.Preview
+
     Box(
-        modifier = modifier.fillMaxWidth().height(with(density) { animatedVisibleHeightPx.toDp() }).clipToBounds(),
+        modifier =
+            modifier.fillMaxWidth().let {
+                if (isPreview) {
+                    it
+                        .height(with(density) { animatedPreviewHeightPx.toDp() })
+                        // See ScrollGatedWebView's doc: the WebView itself declines touches in
+                        // Preview mode, so this is what actually receives the resulting tap.
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onExpandRequested,
+                        )
+                } else {
+                    it.fillMaxSize()
+                }
+            },
         contentAlignment = Alignment.TopStart,
     ) {
         AndroidView(
-            // Full content height, deliberately overflowing the clipped parent when collapsed —
-            // see this composable's doc for why the WebView must never be the thing that scrolls.
-            modifier = Modifier.fillMaxWidth().height(with(density) { fullHeightPx.toDp() }),
+            // matchParentSize (not a second, independently-computed height) so this can never
+            // land a frame out of sync with the Box that establishes the actual size above.
+            modifier = Modifier.matchParentSize(),
             factory = {
-                WebView(context).apply {
-                    layoutParams =
-                        ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                    setBackgroundColor(AndroidColor.TRANSPARENT)
-                    overScrollMode = View.OVER_SCROLL_NEVER
-                    isVerticalScrollBarEnabled = false
-                    isHorizontalScrollBarEnabled = false
-                    settings.javaScriptEnabled = false
-                    settings.useWideViewPort = true
-                    settings.loadWithOverviewMode = true
-                    webViewClient =
-                        ReadmeWebViewClient(context) { measuredPx ->
-                            contentHeightPx = measuredPx
-                            onContentHeightMeasured(measuredPx)
-                        }
-                }
+                (webView.parent as? ViewGroup)?.removeView(webView)
+                webView
             },
-            update = { webView ->
+            update = { view ->
+                view.touchEnabled = mode == ReadmeViewMode.Read
+                // Reassigned every recomposition (cheap) rather than only in `factory`, because
+                // the callback closes over this composition's current height and event handlers
+                // while the native View can survive LazyColumn disposal/re-attachment.
+                view.webViewClient =
+                    ReadmeWebViewClient(
+                        context = context,
+                        onContentHeightChanged = { measuredPx ->
+                            if (view.loadedDocument == document) {
+                                view.measuredDocumentHeightPx = measuredPx
+                                measuredContentHeightPx = measuredPx
+                                onContentHeightMeasured(measuredPx)
+                            }
+                        },
+                        onPageVisible = {
+                            if (view.loadedDocument == document) {
+                                view.visibleDocument = document
+                                isPageVisible = true
+                            }
+                        },
+                    )
                 // AndroidView re-invokes `update` on every recomposition, not just when [document]
-                // actually changed — without this guard, an unrelated recomposition (the sheet
-                // scrolling, or the expand animation ticking) would reload the exact same page and
-                // undo the "load once" property this composable's smoothness depends on.
-                if (document != loadedDocument) {
-                    loadedDocument = document
-                    webView.loadDataWithBaseURL(README_BASE_URL, document, "text/html", "utf-8", null)
+                // actually changed. Its loaded/visible/measurement state is tracked on the View
+                // itself so reattaching the preview after fullscreen read mode restores the
+                // already-rendered state instead of waiting forever for a callback that will not
+                // fire a second time.
+                if (view.loadedDocument != document) {
+                    view.loadedDocument = document
+                    view.visibleDocument = null
+                    view.measuredDocumentHeightPx = 0
+                    view.loadDataWithBaseURL(README_BASE_URL, document, "text/html", "utf-8", null)
                 }
             },
-            onRelease = { webView -> webView.destroy() },
+            onRelease = { view -> (view.parent as? ViewGroup)?.removeView(view) },
         )
 
-        if (isAwaitingFirstMeasurement) {
+        // A newly-created fullscreen reader parses the already-fetched HTML asynchronously.
+        // Keep that short interval explicit instead of presenting another ambiguous blank screen.
+        if (!isPageVisible) {
             CircularProgressIndicator(
                 modifier = Modifier.size(20.dp).align(Alignment.Center),
                 strokeWidth = 2.dp,
@@ -215,24 +339,24 @@ fun ReadmeWebView(
             )
         }
 
-        // Fades the clipped edge out instead of slicing a line of text in half, so the collapsed
-        // state reads as "there's more below" rather than as a rendering fault. Only while there
-        // genuinely is more: once expanded (or for a README shorter than the collapsed height)
-        // there's no cut to soften. surfaceContainer matches the README card this sits in.
-        val isClipped = maxVisibleHeightPx != null && contentHeightPx > maxVisibleHeightPx
-        if (isClipped) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(FADE_SCRIM_HEIGHT_DP.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainer),
+        if (isPreview) {
+            // Fades the capped edge out instead of slicing a line of text in half, so the preview
+            // reads as "there's more below" rather than a rendering fault. Only while there
+            // genuinely is more: a README shorter than the cap has nothing to fade.
+            if (measuredContentHeightPx > capPx) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(FADE_SCRIM_HEIGHT_DP.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainer),
+                                ),
                             ),
-                        ),
-            )
+                )
+            }
         }
     }
 }
@@ -279,13 +403,14 @@ private const val IMAGE_SETTLE_DELAY_MS = 400L
 // flight — see [ReadmeWebView]'s doc for why that gap otherwise renders as nothing at all.
 private const val README_LOADING_PLACEHOLDER_DP = 160
 
+// Default preview cap — roughly a phone screen's worth: enough to judge the repo, short enough
+// that the sheet's other sections stay reachable without a long scroll. Overridable per call
+// site; internal (not private) so a caller deciding whether to show its own "show more" affordance
+// can compare against the same threshold this composable actually caps at, instead of guessing.
+internal const val README_PREVIEW_CAP_DP = 420
+
 // Long enough to read as a deliberate reveal rather than a snap, short enough not to make the
-// user wait for content that is already rendered and sitting behind the clip.
+// user wait for content that is already rendered.
 private const val EXPAND_ANIMATION_MS = 320
 
 private const val FADE_SCRIM_HEIGHT_DP = 56
-
-// A comfortable margin below wherever Compose's own Constraints packing limit actually is — see
-// ReadmeWebViewClient.reportHeight's doc for the crash this prevents. In device px, not dp: a
-// long expanded README easily clears six figures here on a high-density screen.
-private const val MAX_REPORTED_HEIGHT_PX = 100_000

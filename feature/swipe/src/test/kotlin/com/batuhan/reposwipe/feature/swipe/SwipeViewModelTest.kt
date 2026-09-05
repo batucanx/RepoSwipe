@@ -6,7 +6,6 @@ import com.batuhan.reposwipe.core.data.DiscoverFilterRepository
 import com.batuhan.reposwipe.core.data.LeaderboardRepository
 import com.batuhan.reposwipe.core.data.RepoRepository
 import com.batuhan.reposwipe.core.data.StarRepository
-import com.batuhan.reposwipe.core.data.model.Contributor
 import com.batuhan.reposwipe.core.data.model.DiscoverFilters
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.network.RateLimitObserver
@@ -14,12 +13,10 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -58,10 +55,6 @@ class SwipeViewModelTest {
         Dispatchers.setMain(dispatcher)
         every { repoRepository.searchRepos(any<DiscoverFilters>()) } returns flowOf(PagingData.empty())
         every { discoverFilterRepository.filters } returns MutableStateFlow(DiscoverFilters())
-        every { starRepository.observePendingStarStates() } returns flowOf(emptyMap())
-        coEvery { repoRepository.getLanguageBreakdown(any(), any()) } returns Result.success(emptyMap())
-        coEvery { repoRepository.getContributors(any(), any()) } returns Result.success(emptyList())
-        coEvery { repoRepository.getSimilarRepos(any()) } returns Result.success(emptyList())
     }
 
     @After
@@ -138,174 +131,48 @@ class SwipeViewModelTest {
         }
 
     @Test
-    fun `opening a detail sheet reports the repo's real GitHub star state`() =
+    fun `prefetchReadme fetches the repo's README`() =
         runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred("batucanx", "reposwipe") } returns true
+            coEvery { repoRepository.getReadmeHtml("batucanx", "reposwipe") } returns Result.success("<p>hi</p>")
             val viewModel = viewModel()
-            val collectJob = launch { viewModel.detailStarred.collect {} }
 
-            viewModel.onDetailOpened(testRepo)
+            viewModel.prefetchReadme(testRepo)
             dispatcher.scheduler.advanceUntilIdle()
 
-            assertEquals(true, viewModel.detailStarred.value)
-            collectJob.cancel()
+            coVerify(exactly = 1) { repoRepository.getReadmeHtml("batucanx", "reposwipe") }
         }
 
     @Test
-    fun `toggling the detail star on an unstarred repo stars it on GitHub`() =
+    fun `prefetchReadme is deduped per repo id, but a different repo still fetches`() =
         runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            coEvery { starRepository.starRepo(any(), any()) } returns Unit
-            val viewModel = viewModel()
-            val collectJob = launch { viewModel.detailStarred.collect {} }
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-            viewModel.toggleDetailStar()
-            dispatcher.scheduler.advanceUntilIdle()
-
-            coVerify { starRepository.starRepo("batucanx", "reposwipe") }
-            collectJob.cancel()
-        }
-
-    @Test
-    fun `toggling the detail star on an already-starred repo unstars it`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns true
-            coEvery { starRepository.unstarRepo(any(), any()) } returns Unit
-            val viewModel = viewModel()
-            val collectJob = launch { viewModel.detailStarred.collect {} }
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-            viewModel.toggleDetailStar()
-            dispatcher.scheduler.advanceUntilIdle()
-
-            coVerify { starRepository.unstarRepo("batucanx", "reposwipe") }
-            collectJob.cancel()
-        }
-
-    @Test
-    fun `a still-pending local toggle outranks the server's star state`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            every { starRepository.observePendingStarStates() } returns
-                flowOf(mapOf("batucanx/reposwipe" to true))
-            val viewModel = viewModel()
-            val collectJob = launch { viewModel.detailStarred.collect {} }
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-
-            assertEquals(true, viewModel.detailStarred.value)
-            collectJob.cancel()
-        }
-
-    @Test
-    fun `opening a detail sheet loads the language breakdown`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            coEvery { repoRepository.getLanguageBreakdown("batucanx", "reposwipe") } returns
-                Result.success(mapOf("Kotlin" to 90_000L, "Java" to 10_000L))
-            val viewModel = viewModel()
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-
-            assertEquals(
-                LanguageBreakdownUiState.Loaded(mapOf("Kotlin" to 90_000L, "Java" to 10_000L)),
-                viewModel.languageBreakdownState.value,
-            )
-        }
-
-    @Test
-    fun `a failed language breakdown load surfaces as an error state, not a crash`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            coEvery { repoRepository.getLanguageBreakdown(any(), any()) } returns Result.failure(RuntimeException("offline"))
-            val viewModel = viewModel()
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-
-            assertEquals(LanguageBreakdownUiState.Error, viewModel.languageBreakdownState.value)
-        }
-
-    @Test
-    fun `opening a detail sheet loads contributors`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            val contributor = Contributor(login = "octocat", avatarUrl = null, contributions = 42, htmlUrl = null)
-            coEvery { repoRepository.getContributors("batucanx", "reposwipe") } returns Result.success(listOf(contributor))
-            val viewModel = viewModel()
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-
-            assertEquals(ContributorsUiState.Loaded(listOf(contributor)), viewModel.contributorsState.value)
-        }
-
-    @Test
-    fun `opening a new detail sheet cancels a still-loading previous repo's contributors load`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
             val otherRepo = testRepo.copy(id = 2L, name = "other-repo")
-            val contributor = Contributor(login = "octocat", avatarUrl = null, contributions = 42, htmlUrl = null)
-            coEvery { repoRepository.getContributors("batucanx", "other-repo") } returns Result.success(listOf(contributor))
+            coEvery { repoRepository.getReadmeHtml("batucanx", "reposwipe") } returns Result.success(null)
+            coEvery { repoRepository.getReadmeHtml("batucanx", "other-repo") } returns Result.success(null)
             val viewModel = viewModel()
 
-            viewModel.onDetailOpened(testRepo)
-            viewModel.onDetailOpened(otherRepo)
+            // Mirrors the real caller: SwipeScreen re-invokes this for the deck's whole visible
+            // window on every swipe, so the same repo is handed in repeatedly as it keeps peeking.
+            viewModel.prefetchReadme(testRepo)
+            viewModel.prefetchReadme(testRepo)
+            viewModel.prefetchReadme(otherRepo)
             dispatcher.scheduler.advanceUntilIdle()
 
-            // Only the most recently opened repo's contributors should ever land in state.
-            assertEquals(ContributorsUiState.Loaded(listOf(contributor)), viewModel.contributorsState.value)
+            coVerify(exactly = 1) { repoRepository.getReadmeHtml("batucanx", "reposwipe") }
+            coVerify(exactly = 1) { repoRepository.getReadmeHtml("batucanx", "other-repo") }
         }
 
     @Test
-    fun `opening a detail sheet loads similar repos`() =
+    fun `a failed prefetchReadme does not crash`() =
         runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            val similar = testRepo.copy(id = 2L, name = "similar-repo")
-            coEvery { repoRepository.getSimilarRepos(testRepo) } returns Result.success(listOf(similar))
+            coEvery { repoRepository.getReadmeHtml(any(), any()) } throws RuntimeException("offline")
             val viewModel = viewModel()
 
-            viewModel.onDetailOpened(testRepo)
+            viewModel.prefetchReadme(testRepo)
             dispatcher.scheduler.advanceUntilIdle()
 
-            assertEquals(SimilarReposUiState.Loaded(listOf(similar)), viewModel.similarReposState.value)
+            // Reaching this line means the failure was swallowed (runCatching), not propagated as
+            // an uncaught coroutine exception — prefetching is a best-effort optimization, not
+            // something that should ever surface to the user.
+            coVerify(exactly = 1) { repoRepository.getReadmeHtml("batucanx", "reposwipe") }
         }
-
-    @Test
-    fun `a failed similar repos load surfaces as an error state, not a crash`() =
-        runTest(dispatcher) {
-            coEvery { repoRepository.getReadmeHtml(any(), any()) } returns Result.success(null)
-            coEvery { starRepository.isStarred(any(), any()) } returns false
-            coEvery { repoRepository.getSimilarRepos(any()) } returns Result.failure(RuntimeException("offline"))
-            val viewModel = viewModel()
-
-            viewModel.onDetailOpened(testRepo)
-            dispatcher.scheduler.advanceUntilIdle()
-
-            assertEquals(SimilarReposUiState.Error, viewModel.similarReposState.value)
-        }
-
-    @Test
-    fun `selectLanguage delegates to the filter repository`() {
-        every { discoverFilterRepository.selectLanguage(any()) } returns Unit
-        val viewModel = viewModel()
-
-        viewModel.selectLanguage("Rust")
-
-        verify { discoverFilterRepository.selectLanguage("Rust") }
-    }
 }

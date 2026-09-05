@@ -11,29 +11,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -65,13 +64,13 @@ import com.batuhan.reposwipe.core.common.format.toCompactCount
 import com.batuhan.reposwipe.core.common.format.toRelativeTimeLabel
 import com.batuhan.reposwipe.core.common.model.SwipeDirection
 import com.batuhan.reposwipe.core.common.share.shareRepoIntent
+import com.batuhan.reposwipe.core.data.model.AvailableLanguages
 import com.batuhan.reposwipe.core.data.model.Contributor
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.designsystem.component.EmptyState
 import com.batuhan.reposwipe.core.designsystem.component.RepoCard
 import com.batuhan.reposwipe.core.designsystem.component.RepoCardData
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeFilterChip
-import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeTopAppBar
 import com.batuhan.reposwipe.core.designsystem.component.SwipeActionButton
 import com.batuhan.reposwipe.core.designsystem.component.SwipeActionButtonSize
 import com.batuhan.reposwipe.core.designsystem.component.SwipeDeck
@@ -80,14 +79,20 @@ import com.batuhan.reposwipe.core.designsystem.component.rememberSwipeDeckState
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import com.batuhan.reposwipe.core.designsystem.theme.languageColor
+import com.batuhan.reposwipe.feature.swipe.component.README_PREVIEW_CAP_DP
+import com.batuhan.reposwipe.feature.swipe.component.ReadmeViewMode
 import com.batuhan.reposwipe.feature.swipe.component.ReadmeWebView
+import com.batuhan.reposwipe.feature.swipe.component.ScrollGatedWebView
+import com.batuhan.reposwipe.feature.swipe.component.rememberReadmeWebView
 import kotlinx.coroutines.launch
+import com.batuhan.reposwipe.core.designsystem.R as DesignSystemR
 
 @Composable
 fun SwipeScreen(
     onFiltersClick: () -> Unit,
-    onMenuClick: () -> Unit,
-    onSearchClick: () -> Unit,
+    onOpenDetail: (owner: String, repo: String) -> Unit,
+    pendingDetailAction: DetailDeckAction? = null,
+    onDetailActionConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SwipeViewModel = hiltViewModel(),
 ) {
@@ -95,41 +100,28 @@ fun SwipeScreen(
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
     val rateLimit by viewModel.rateLimit.collectAsStateWithLifecycle()
-    val readmeState by viewModel.readmeState.collectAsStateWithLifecycle()
-    val languageBreakdownState by viewModel.languageBreakdownState.collectAsStateWithLifecycle()
-    val contributorsState by viewModel.contributorsState.collectAsStateWithLifecycle()
-    val similarReposState by viewModel.similarReposState.collectAsStateWithLifecycle()
-    val detailStarred by viewModel.detailStarred.collectAsStateWithLifecycle()
-    var repoForDetail by remember { mutableStateOf<Repo?>(null) }
     val deckState = rememberSwipeDeckState()
-    val coroutineScope = rememberCoroutineScope()
+    val visibleRepos = visibleRepos(repos, currentIndex)
 
-    Column(modifier = modifier.fillMaxSize()) {
-        RepoSwipeTopAppBar(
-            onMenuClick = onMenuClick,
-            onTrailingClick = onFiltersClick,
-            secondaryTrailingIcon = RepoSwipeIcons.Search,
-            secondaryTrailingContentDescription = stringResource(R.string.swipe_search_cd),
-            onSecondaryTrailingClick = onSearchClick,
-        )
-
-        LazyRow(
-            contentPadding =
-                PaddingValues(
-                    horizontal = RepoSwipeTheme.spacing.gutter,
-                    vertical = RepoSwipeTheme.spacing.xs,
-                ),
-            horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.sm),
-        ) {
-            items(DiscoverLanguages) { language ->
-                RepoSwipeFilterChip(
-                    label = language,
-                    selected = language == filters.language,
-                    onClick = { viewModel.selectLanguage(language) },
-                )
+    // Hoisted above the loading/error/empty `when` below (rather than living inside
+    // SwipeDeckContent, which only composes in its innermost success branch) so a Star/Pass/
+    // Rewind action returned from the detail screen is never silently stranded — or, worse,
+    // replayed against a different repo later — just because the deck wasn't composed at the
+    // exact moment it came back (e.g. a filter-change reload was in progress). With no front
+    // card to apply it to, it's simply consumed instead of misapplied.
+    LaunchedEffect(pendingDetailAction) {
+        val action = pendingDetailAction ?: return@LaunchedEffect
+        if (visibleRepos.isNotEmpty()) {
+            when (action) {
+                DetailDeckAction.Rewind -> viewModel.onRewind()
+                DetailDeckAction.Pass -> deckState.swipeLeft()
+                DetailDeckAction.Star -> deckState.swipeRight()
             }
         }
+        onDetailActionConsumed()
+    }
 
+    Box(modifier = modifier.fillMaxSize()) {
         val currentRateLimit = rateLimit
         if (currentRateLimit != null && currentRateLimit.isExhausted) {
             FullScreenState {
@@ -158,7 +150,8 @@ fun SwipeScreen(
             //   gap without reopening the mediator-vs-source race described above.
             //
             // hasShownContent guards the *same* spinner against a second kind of churn — see
-            // shouldShowFullScreenLoading's doc.
+            // shouldShowFullScreenLoading's doc. Keying it on all filters keeps the quick-language
+            // rail and the dedicated Filter screen on the same loading/state transition path.
             var hasShownContent by remember(filters) { mutableStateOf(false) }
             val mediatorRefresh = repos.loadState.mediator?.refresh
             val sourceRefresh = repos.loadState.source.refresh
@@ -177,7 +170,6 @@ fun SwipeScreen(
                         )
                     }
                 else -> {
-                    val visibleRepos = visibleRepos(repos, currentIndex)
                     if (visibleRepos.isNotEmpty()) hasShownContent = true
 
                     if (visibleRepos.isEmpty()) {
@@ -199,37 +191,102 @@ fun SwipeScreen(
                             }
                         }
                     } else {
+                        // Warms the OkHttp disk cache for every repo the deck currently shows or
+                        // peeks — see SwipeViewModel.prefetchReadme's doc. Keyed on the list itself
+                        // (structural equality on Repo, a data class) so this re-fires exactly when
+                        // the visible window actually shifts, i.e. once per swipe.
+                        LaunchedEffect(visibleRepos) {
+                            visibleRepos.forEach(viewModel::prefetchReadme)
+                        }
                         SwipeDeckContent(
                             repos = visibleRepos,
                             deckState = deckState,
                             onSwiped = { repo, direction -> viewModel.onSwiped(repo, direction) },
                             onRewind = viewModel::onRewind,
-                            onQuickView = { repoForDetail = it },
+                            onQuickView = { repo -> onOpenDetail(repo.ownerLogin, repo.name) },
+                            // Small top clearance so the card's header image doesn't sit flush
+                            // against the top edge — on Samsung devices with a center-top camera
+                            // cutout, the full-bleed header otherwise reads as touching it.
+                            modifier =
+                                Modifier.padding(
+                                    top = RepoSwipeTheme.spacing.xs,
+                                    bottom = RepoSwipeTheme.spacing.sm,
+                                ),
                         )
                     }
                 }
             }
         }
-    }
 
-    repoForDetail?.let { repo ->
-        RepoDetailSheet(
-            repo = repo,
-            content = RepoDetailContentState(readmeState, languageBreakdownState, contributorsState, similarReposState),
-            isStarredOnGitHub = detailStarred,
-            onOpened = viewModel::onDetailOpened,
-            onToggleGitHubStar = viewModel::toggleDetailStar,
-            onDismiss = {
-                repoForDetail = null
-                viewModel.onDetailClosed()
-            },
-            onRewind = viewModel::onRewind,
-            onReject = { coroutineScope.launch { deckState.swipeLeft() } },
-            onStar = { coroutineScope.launch { deckState.swipeRight() } },
+        SwipeTopControls(
+            onFiltersClick = onFiltersClick,
+            selectedLanguage = filters.language,
+            onLanguageSelected = viewModel::setQuickLanguage,
+            modifier = Modifier.align(Alignment.TopCenter),
         )
     }
 }
 
+/**
+ * Discover's fixed filter affordance plus a single-select, horizontally scrolling language rail.
+ * It floats over the card's top scrim so the deck remains immersive without sacrificing contrast.
+ */
+@Composable
+private fun SwipeTopControls(
+    onFiltersClick: () -> Unit,
+    selectedLanguage: String?,
+    onLanguageSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .widthIn(max = CARD_MAX_WIDTH)
+                .fillMaxWidth()
+                .padding(horizontal = RepoSwipeTheme.spacing.gutter, vertical = RepoSwipeTheme.spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SwipeActionButton(
+            icon = RepoSwipeIcons.Filters,
+            contentDescription = stringResource(DesignSystemR.string.topbar_filters_cd),
+            onClick = onFiltersClick,
+            size = SwipeActionButtonSize.Small,
+        )
+
+        LazyRow(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs),
+            contentPadding = PaddingValues(end = RepoSwipeTheme.spacing.gutter),
+        ) {
+            item(key = "for_you") {
+                RepoSwipeFilterChip(
+                    label = stringResource(R.string.swipe_quick_language_for_you),
+                    selected = selectedLanguage == null,
+                    onClick = { onLanguageSelected(null) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
+            }
+            items(QuickLanguages, key = { it }) { language ->
+                RepoSwipeFilterChip(
+                    label = language,
+                    selected = selectedLanguage == language,
+                    onClick = { onLanguageSelected(language) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The deck fills the whole available area (no fixed aspect-ratio box floating mid-screen) — the
+ * action row floats over its bottom edge as a glass pill, the same treatment
+ * [SwipeTopControls]/[com.batuhan.reposwipe.core.designsystem.component.RepoSwipeBottomNavBar]
+ * already use over content elsewhere, rather than reserving its own dedicated strip beneath the
+ * card. [SwipeActionButton]'s default translucent-plus-border container is what keeps it legible
+ * over whatever color the front card's header photo happens to be.
+ */
 @Composable
 private fun SwipeDeckContent(
     repos: List<Repo>,
@@ -237,17 +294,12 @@ private fun SwipeDeckContent(
     onSwiped: (Repo, SwipeDirection) -> Unit,
     onRewind: () -> Unit,
     onQuickView: (Repo) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val frontRepo = repos.firstOrNull()
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = RepoSwipeTheme.spacing.gutter),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
         SwipeDeck(
             items = repos,
             itemKey = { it.id },
@@ -258,21 +310,51 @@ private fun SwipeDeckContent(
             onCardTap = onQuickView,
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(4f / 5f),
+                    .align(Alignment.Center)
+                    .widthIn(max = CARD_MAX_WIDTH)
+                    .fillMaxSize()
+                    .padding(horizontal = RepoSwipeTheme.spacing.gutter),
         ) { repo ->
             // remember, not a bare call: this lambda is re-invoked whenever the deck recomposes,
             // and toCardData does real per-call work (two toCompactCount formats plus a
             // languageColor lookup) to rebuild a value that only changes when `repo` does.
             val cardData = remember(repo) { repo.toCardData() }
-            RepoCard(data = cardData, modifier = Modifier.fillMaxSize())
+            RepoCard(
+                data = cardData,
+                contentBottomPadding = ACTION_OVERLAY_CLEARANCE,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
+
+        Box(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .widthIn(max = CARD_MAX_WIDTH)
+                    .fillMaxWidth()
+                    .height(ACTION_SCRIM_HEIGHT)
+                    .padding(horizontal = RepoSwipeTheme.spacing.gutter)
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0f),
+                                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.9f),
+                            ),
+                        ),
+                    ),
+        )
 
         Row(
             modifier =
                 Modifier
+                    .align(Alignment.BottomCenter)
+                    .widthIn(max = CARD_MAX_WIDTH)
                     .fillMaxWidth()
-                    .padding(vertical = RepoSwipeTheme.spacing.xl),
+                    .padding(
+                        horizontal = RepoSwipeTheme.spacing.gutter,
+                        vertical = RepoSwipeTheme.spacing.lg,
+                    ),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -280,7 +362,7 @@ private fun SwipeDeckContent(
                 icon = RepoSwipeIcons.Rewind,
                 contentDescription = stringResource(R.string.swipe_action_rewind_cd),
                 onClick = onRewind,
-                size = SwipeActionButtonSize.Large,
+                size = SwipeActionButtonSize.Medium,
             )
             SwipeActionButton(
                 icon = RepoSwipeIcons.Skip,
@@ -295,16 +377,19 @@ private fun SwipeDeckContent(
                 icon = RepoSwipeIcons.Like,
                 contentDescription = stringResource(R.string.swipe_action_star),
                 onClick = { coroutineScope.launch { deckState.swipeRight() } },
-                size = SwipeActionButtonSize.ExtraLarge,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                borderColor = MaterialTheme.colorScheme.primaryContainer,
+                size = SwipeActionButtonSize.Large,
+                // Filled red heart rather than the blue brand accent (2026-09-04, user request,
+                // matching the Stitch "Rendez-vous" reference's crimson Like button) — kept in
+                // sync with SwipeRightOverlay's drag-feedback tint above.
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+                borderColor = MaterialTheme.colorScheme.error,
             )
             SwipeActionButton(
                 icon = RepoSwipeIcons.QuickView,
                 contentDescription = stringResource(R.string.swipe_action_quick_view_cd),
                 onClick = { frontRepo?.let(onQuickView) },
-                size = SwipeActionButtonSize.Large,
+                size = SwipeActionButtonSize.Medium,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
                 contentColor = MaterialTheme.colorScheme.primaryContainer,
                 borderColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
@@ -312,6 +397,18 @@ private fun SwipeDeckContent(
         }
     }
 }
+
+enum class DetailDeckAction { Rewind, Pass, Star }
+
+private val QuickLanguages =
+    AvailableLanguages.filter {
+        it in
+            setOf("JavaScript", "Python", "Kotlin", "TypeScript", "Rust", "Go", "Swift")
+    }
+private val ACTION_OVERLAY_CLEARANCE = 104.dp
+private val ACTION_SCRIM_HEIGHT = 144.dp
+private val CARD_MAX_WIDTH = 560.dp
+private val DETAIL_MAX_WIDTH = 720.dp
 
 @Composable
 private fun FullScreenState(content: @Composable () -> Unit) {
@@ -348,13 +445,19 @@ private fun visibleRepos(
     currentIndex: Int,
 ): List<Repo> = (currentIndex until minOf(currentIndex + 3, repos.itemCount)).mapNotNull { index -> repos[index] }
 
-/** Bundles the detail sheet's three independently-loading async sections into one parameter,
- * keeping [RepoDetailSheet]'s own parameter list from growing every time another section is added. */
+/** Groups independently loading detail sections without widening the screen's parameter list. */
 private data class RepoDetailContentState(
     val readme: ReadmeUiState,
     val languageBreakdown: LanguageBreakdownUiState,
     val contributors: ContributorsUiState,
     val similarRepos: SimilarReposUiState,
+)
+
+private data class RepoDetailOverviewActions(
+    val onReadmeContentHeightMeasured: (Int) -> Unit,
+    val onToggleGitHubStar: () -> Unit,
+    val onRetryReadme: () -> Unit,
+    val onReadmeExpandRequested: () -> Unit,
 )
 
 private fun Repo.toCardData(): RepoCardData =
@@ -368,156 +471,317 @@ private fun Repo.toCardData(): RepoCardData =
         forkCount = forkCount.toCompactCount(),
         languageName = language,
         languageColor = languageColor(language),
+        topics = topics,
     )
 
 /**
- * Repo detail sheet, opened by tapping the front card or its quick-view button. The body scrolls
- * independently while [RepoDetailActionBar] stays pinned at the bottom, so the same swipe/rewind
- * decision can be made at any scroll position. Reject/star/rewind hide the sheet and drive the
- * shared deck state at the same time, so the card's own commit animation and the sheet's
- * slide-down play together. Everything in this sheet stays in-app except the small icon next to
- * the title and the README itself — [ReadmeWebView] renders GitHub's own README HTML and hands
- * any link/badge tap off to Chrome Custom Tabs, since that content and its links are GitHub's,
- * not this app's, the same as tapping one would do on github.com itself.
+ * Full-screen repo detail, opened by tapping the front card or its quick-view button. Two modes,
+ * never
+ * both on screen at once:
+ * - **Overview** ([ReadmeViewMode.Preview]): header/stats/language/contributors/similar-repos,
+ *   each its own `LazyColumn` item, plus a capped, non-scrolling README preview that hands taps
+ *   off to [ReadmeWebView]'s own `onExpandRequested`.
+ * - **Read** ([ReadmeViewMode.Read]): every other section disappears and the same README
+ *   [ReadmeWebView] instead fills the page and scrolls internally — the point of the whole
+ *   fullscreen-README ask this shipped for: the user reads GitHub's actual rendered README,
+ *   images/code-blocks/tables and all, without ever leaving the app.
+ *
+ * [RepoDetailActionBar] stays pinned at the bottom in *both* modes — a reader who opened the full
+ * README is, if anything, more likely to be mid-decision, so taking the star/pass/rewind actions
+ * away right when they're most useful would be backwards. It only renders at all when
+ * [showDeckActions] is true: Rewind/Pass drive the Discover swipe deck specifically and have no
+ * meaning when this screen is opened from a non-deck entry point (Leaderboard, Search) — those
+ * callers still get the real GitHub star toggle in the header above.
+ *
+ * Everything on this page stays in-app except the small icon next to the title and the README's
+ * own links — [ReadmeWebView] hands those off to Chrome Custom Tabs, since that content and its
+ * links are GitHub's, not this app's, the same as tapping one would do on github.com itself.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RepoDetailSheet(
-    repo: Repo,
-    content: RepoDetailContentState,
-    isStarredOnGitHub: Boolean?,
-    onOpened: (Repo) -> Unit,
-    onToggleGitHubStar: () -> Unit,
-    onDismiss: () -> Unit,
-    onRewind: () -> Unit,
-    onReject: () -> Unit,
-    onStar: () -> Unit,
+fun RepoDetailScreen(
+    onBack: () -> Unit,
+    onDeckAction: (DetailDeckAction) -> Unit,
+    showDeckActions: Boolean = true,
+    modifier: Modifier = Modifier,
+    viewModel: RepoDetailViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val coroutineScope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isStarred by viewModel.isStarred.collectAsStateWithLifecycle()
+    // Preview and fullscreen read mode intentionally own different native WebViews. A single
+    // Android View cannot safely move between two AndroidView call sites during the same Compose
+    // frame: the outgoing preview's onRelease may otherwise detach the View after the reader has
+    // already claimed it, leaving a permanently blank reader surface.
+    val readmePreviewWebView = rememberReadmeWebView()
+    val readmeReaderWebView = rememberReadmeWebView()
+    val repo = uiState.repo
+    var readmeMode by remember(repo?.id) { mutableStateOf(ReadmeViewMode.Preview) }
+    var readmeContentHeightPx by remember(repo?.id) { mutableIntStateOf(0) }
+    val readmeHtml = (uiState.readme as? ReadmeUiState.Loaded)?.html
+    val isReadMode = readmeMode == ReadmeViewMode.Read && readmeHtml != null
+    // Only the swipe-deck entry point's back button actually returns to Discover — Leaderboard/
+    // Search/Starred's entry points (showDeckActions = false) return to whichever of those the
+    // user came from, so "Back to Discover" would be a misleading TalkBack announcement there.
+    val backContentDescription =
+        stringResource(if (showDeckActions) R.string.swipe_detail_back_cd else R.string.swipe_detail_back_generic_cd)
 
-    LaunchedEffect(repo.id) { onOpened(repo) }
+    androidx.activity.compose.BackHandler(enabled = isReadMode) { readmeMode = ReadmeViewMode.Preview }
 
-    // Hoisted out of the LazyColumn below on purpose. `remember` inside a lazy item dies when that
-    // item scrolls out of the viewport and gets disposed, and the README is the *last* item — so
-    // reading it, scrolling up to the contributors, then coming back would silently collapse it
-    // again and re-run its "Devamını gör" affordance from scratch. Keeping both here means the
-    // reader's decision to expand outlives any amount of scrolling, and the measured height is
-    // still known if the WebView itself has to be re-inflated, so the button doesn't flicker back
-    // in while a fresh measurement lands. Keyed to the sheet, which is per-repo.
-    var readmeExpanded by remember { mutableStateOf(false) }
-    var readmeContentHeightPx by remember { mutableIntStateOf(0) }
-
-    fun hideThenDismiss() {
-        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
-            if (!sheetState.isVisible) onDismiss()
-        }
-    }
-
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // LazyColumn rather than a plain scrolling Column: the sections below the fold
-            // (contributors/similar-repos avatar rows, and especially the README's WebView —
-            // real Android View inflation, one of the more expensive things this sheet does)
-            // otherwise composed unconditionally the instant the sheet opened, competing with its
-            // own slide-up animation for the frame budget. Composing lazily defers that cost until
-            // the user actually scrolls each section into view.
-            LazyColumn(
-                modifier = Modifier.weight(1f, fill = false),
-                contentPadding =
-                    PaddingValues(
-                        start = RepoSwipeTheme.spacing.gutter,
-                        end = RepoSwipeTheme.spacing.gutter,
-                        bottom = RepoSwipeTheme.spacing.lg,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
-            ) {
-                item {
-                    RepoDetailHeader(
-                        repo = repo,
-                        isStarredOnGitHub = isStarredOnGitHub,
-                        onToggleGitHubStar = onToggleGitHubStar,
-                    )
-                }
-
-                val language = repo.language
-                if (language != null) {
-                    item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
-                        ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(10.dp)
-                                        .background(languageColor(language) ?: MaterialTheme.colorScheme.outline, CircleShape),
-                            )
-                            Text(
-                                text = language,
-                                style = RepoSwipeTheme.typography.labelMd,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.sm),
-                    ) {
-                        DetailStatTile(
-                            icon = RepoSwipeIcons.Star,
-                            value = repo.starCount.toCompactCount(),
-                            label = stringResource(R.string.swipe_detail_stat_stars),
-                            modifier = Modifier.weight(1f),
-                        )
-                        DetailStatTile(
-                            icon = RepoSwipeIcons.Fork,
-                            value = repo.forkCount.toCompactCount(),
-                            label = stringResource(R.string.swipe_detail_stat_forks),
-                            modifier = Modifier.weight(1f),
-                        )
-                        DetailStatTile(
-                            icon = RepoSwipeIcons.UpdatedAt,
-                            value = repo.updatedAt.toRelativeTimeLabel(),
-                            label = stringResource(R.string.swipe_detail_stat_updated),
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-
-                item { LanguageBreakdownSection(state = content.languageBreakdown) }
-                item { ContributorsSection(state = content.contributors) }
-                item { SimilarReposSection(state = content.similarRepos) }
-                item {
-                    ReadmeSection(
-                        state = content.readme,
-                        expanded = readmeExpanded,
-                        onExpand = { readmeExpanded = true },
-                        contentHeightPx = readmeContentHeightPx,
-                        onContentHeightMeasured = { readmeContentHeightPx = it },
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+    ) {
+        when {
+            uiState.isLoading -> {
+                RepoDetailTopBar(
+                    title = stringResource(R.string.swipe_detail_title),
+                    onBack = onBack,
+                    backContentDescription = backContentDescription,
+                )
+                FullScreenState { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+            }
+            uiState.hasError || repo == null -> {
+                RepoDetailTopBar(
+                    title = stringResource(R.string.swipe_detail_title),
+                    onBack = onBack,
+                    backContentDescription = backContentDescription,
+                )
+                FullScreenState {
+                    EmptyState(
+                        icon = RepoSwipeIcons.Error,
+                        title = stringResource(R.string.swipe_detail_error_title),
+                        message = stringResource(R.string.swipe_detail_error_message),
+                        iconTint = MaterialTheme.colorScheme.error,
+                        actionLabel = stringResource(R.string.swipe_action_retry),
+                        onAction = viewModel::retry,
                     )
                 }
             }
+            else -> {
+                val content =
+                    RepoDetailContentState(
+                        readme = uiState.readme,
+                        languageBreakdown = uiState.languageBreakdown,
+                        contributors = uiState.contributors,
+                        similarRepos = uiState.similarRepos,
+                    )
 
-            RepoDetailActionBar(
-                onRewind = {
-                    onRewind()
-                    hideThenDismiss()
-                },
-                onReject = {
-                    onReject()
-                    hideThenDismiss()
-                },
-                onStar = {
-                    onStar()
-                    hideThenDismiss()
-                },
+                if (isReadMode) {
+                    ReadmeReadModeContent(
+                        repo = repo,
+                        webView = readmeReaderWebView,
+                        html = requireNotNull(readmeHtml),
+                        onBack = { readmeMode = ReadmeViewMode.Preview },
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    RepoDetailTopBar(
+                        title = "${repo.ownerLogin}/${repo.name}",
+                        onBack = onBack,
+                        backContentDescription = backContentDescription,
+                    )
+                    RepoDetailOverviewContent(
+                        repo = repo,
+                        content = content,
+                        isStarredOnGitHub = isStarred,
+                        webView = readmePreviewWebView,
+                        readmeContentHeightPx = readmeContentHeightPx,
+                        actions =
+                            RepoDetailOverviewActions(
+                                onReadmeContentHeightMeasured = { readmeContentHeightPx = it },
+                                onToggleGitHubStar = viewModel::toggleStar,
+                                onRetryReadme = viewModel::retryReadme,
+                                onReadmeExpandRequested = { readmeMode = ReadmeViewMode.Read },
+                            ),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .align(Alignment.CenterHorizontally)
+                                .widthIn(max = DETAIL_MAX_WIDTH),
+                    )
+                }
+
+                if (showDeckActions) {
+                    RepoDetailActionBar(
+                        onRewind = { onDeckAction(DetailDeckAction.Rewind) },
+                        onReject = { onDeckAction(DetailDeckAction.Pass) },
+                        onStar = { onDeckAction(DetailDeckAction.Star) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RepoDetailTopBar(
+    title: String,
+    onBack: () -> Unit,
+    backContentDescription: String,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = RepoSwipeTheme.spacing.xs, vertical = RepoSwipeTheme.spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = RepoSwipeIcons.Back,
+                contentDescription = backContentDescription,
             )
         }
+        Text(
+            text = title,
+            style = RepoSwipeTheme.typography.bodyLg.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** Read mode's whole body: a minimal back-to-overview title row above a fullscreen, internally
+ * scrolling [ReadmeWebView]. Deliberately not the full [RepoDetailHeader] — repeating the
+ * star/share/open-external row here would just duplicate controls already one tap away in
+ * Overview, for a title bar whose only job is "what am I reading and how do I leave". */
+@Composable
+private fun ReadmeReadModeContent(
+    repo: Repo,
+    webView: ScrollGatedWebView,
+    html: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = RepoSwipeTheme.spacing.gutter, vertical = RepoSwipeTheme.spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = RepoSwipeIcons.Back,
+                    contentDescription = stringResource(R.string.swipe_detail_readme_back_cd),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = "${repo.ownerLogin}/${repo.name}",
+                style = RepoSwipeTheme.typography.bodyLg.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        ReadmeWebView(
+            webView = webView,
+            html = html,
+            mode = ReadmeViewMode.Read,
+            modifier = Modifier.weight(1f).padding(horizontal = RepoSwipeTheme.spacing.gutter),
+        )
+    }
+}
+
+/** Overview mode's whole body — header/stats through similar-repos, README preview placed right
+ * after the stats (see [ReadmeSection]'s doc for why it leads instead of trailing). `LazyColumn`
+ * rather than a plain scrolling `Column`: the sections below the fold (contributors/similar-repos
+ * avatar rows, and especially the README's WebView — real Android View inflation, one of the more
+ * expensive things this sheet does) would otherwise compose unconditionally the instant the sheet
+ * opened, competing with its own slide-up animation for the frame budget. Composing lazily defers
+ * that cost until the user actually scrolls each section into view. */
+@Composable
+private fun RepoDetailOverviewContent(
+    repo: Repo,
+    content: RepoDetailContentState,
+    isStarredOnGitHub: Boolean?,
+    webView: ScrollGatedWebView,
+    readmeContentHeightPx: Int,
+    actions: RepoDetailOverviewActions,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding =
+            PaddingValues(
+                start = RepoSwipeTheme.spacing.gutter,
+                end = RepoSwipeTheme.spacing.gutter,
+                bottom = RepoSwipeTheme.spacing.lg,
+            ),
+        verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
+    ) {
+        item {
+            RepoDetailHeader(
+                repo = repo,
+                isStarredOnGitHub = isStarredOnGitHub,
+                onToggleGitHubStar = actions.onToggleGitHubStar,
+            )
+        }
+
+        val language = repo.language
+        if (language != null) {
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.base),
+                ) {
+                    val dotColor = languageColor(language) ?: MaterialTheme.colorScheme.outline
+                    Box(modifier = Modifier.size(10.dp).background(dotColor, CircleShape))
+                    Text(
+                        text = language,
+                        style = RepoSwipeTheme.typography.labelMd,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.sm),
+            ) {
+                DetailStatTile(
+                    icon = RepoSwipeIcons.Star,
+                    value = repo.starCount.toCompactCount(),
+                    label = stringResource(R.string.swipe_detail_stat_stars),
+                    modifier = Modifier.weight(1f),
+                )
+                DetailStatTile(
+                    icon = RepoSwipeIcons.Fork,
+                    value = repo.forkCount.toCompactCount(),
+                    label = stringResource(R.string.swipe_detail_stat_forks),
+                    modifier = Modifier.weight(1f),
+                )
+                DetailStatTile(
+                    icon = RepoSwipeIcons.UpdatedAt,
+                    value = repo.updatedAt.toRelativeTimeLabel(),
+                    label = stringResource(R.string.swipe_detail_stat_updated),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        item {
+            ReadmeSection(
+                state = content.readme,
+                webView = webView,
+                contentHeightPx = readmeContentHeightPx,
+                onContentHeightMeasured = actions.onReadmeContentHeightMeasured,
+                onRetry = actions.onRetryReadme,
+                onExpandRequested = actions.onReadmeExpandRequested,
+            )
+        }
+        item { LanguageBreakdownSection(state = content.languageBreakdown) }
+        item { ContributorsSection(state = content.contributors) }
+        item { SimilarReposSection(state = content.similarRepos) }
     }
 }
 
@@ -553,7 +817,10 @@ private fun RepoDetailHeader(
         Row {
             // The real GitHub star, separate from the deck's swipe-right: this one reflects the
             // repo's actual starred state and leaves the sheet open.
-            IconButton(onClick = onToggleGitHubStar) {
+            IconButton(
+                onClick = onToggleGitHubStar,
+                enabled = isStarredOnGitHub != null,
+            ) {
                 Icon(
                     imageVector = if (isStarred) RepoSwipeIcons.StarFilled else RepoSwipeIcons.Star,
                     contentDescription =
@@ -818,13 +1085,6 @@ private fun SimilarRepoCard(
     }
 }
 
-// How much README the detail sheet shows before "Devamını gör". Sized in dp rather than in HTML
-// characters (which is what an earlier truncate-the-markup approach used) because what actually
-// matters is how much vertical space the README is allowed to take from the rest of the sheet —
-// a character budget gave wildly different visual heights depending on how image-heavy the README
-// was. Roughly a phone screen's worth: enough to judge the repo, short enough that the sections
-// below the README stay reachable without a long scroll.
-private const val README_COLLAPSED_HEIGHT_DP = 420
 private const val MAX_LANGUAGE_LEGEND_ENTRIES = 6
 private const val MIN_LANGUAGE_SEGMENT_WEIGHT = 0.001f
 private const val LANGUAGE_BAR_HEIGHT_DP = 8
@@ -833,15 +1093,23 @@ private const val CONTRIBUTOR_AVATAR_SIZE_DP = 48
 private const val CONTRIBUTOR_AVATAR_COLUMN_WIDTH_DP = 56
 private const val SIMILAR_REPO_CARD_WIDTH_DP = 160
 
-/** Expand state is owned by [RepoDetailSheet] rather than by this composable — see the declaration
- * of `readmeExpanded` there for why surviving lazy-item disposal matters. */
+/**
+ * A capped, non-scrolling preview — tapping anywhere on it, or its "Show more" button once
+ * there's genuinely more to read, calls [onExpandRequested], which [RepoDetailSheet] turns into a
+ * full mode switch to [ReadmeViewMode.Read]. Placed first among the sheet's sections (right after
+ * the header/stats, ahead of language/contributors/similar-repos): the README is the single
+ * richest "should I star this?" signal a repo has, and this sheet exists to answer exactly that
+ * question — burying it below lower-value sections made the reader do the most work to reach the
+ * most useful content.
+ */
 @Composable
 private fun ReadmeSection(
     state: ReadmeUiState,
-    expanded: Boolean,
-    onExpand: () -> Unit,
+    webView: ScrollGatedWebView,
     contentHeightPx: Int,
     onContentHeightMeasured: (Int) -> Unit,
+    onRetry: () -> Unit,
+    onExpandRequested: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -882,11 +1150,16 @@ private fun ReadmeSection(
                     )
                 }
             is ReadmeUiState.Error ->
-                Text(
-                    text = stringResource(R.string.swipe_detail_readme_error),
-                    style = RepoSwipeTheme.typography.bodySm.copy(fontSize = 14.sp, lineHeight = 20.sp),
-                    color = MaterialTheme.colorScheme.error,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.xs)) {
+                    Text(
+                        text = stringResource(R.string.swipe_detail_readme_error),
+                        style = RepoSwipeTheme.typography.bodySm.copy(fontSize = 14.sp, lineHeight = 20.sp),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    TextButton(onClick = onRetry) {
+                        Text(text = stringResource(R.string.swipe_action_retry))
+                    }
+                }
             is ReadmeUiState.Loaded -> {
                 val html = state.html
                 if (html.isNullOrEmpty()) {
@@ -896,29 +1169,20 @@ private fun ReadmeSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    // Expansion is deliberately one-way: there is no "daha az göster". Collapsing
-                    // shrinks this item inside the sheet's LazyColumn, which clamps the list's
-                    // scroll offset and throws the reader somewhere they didn't ask to be — the
-                    // exact disorientation the expand path was fixed to avoid. Once someone has
-                    // asked for the whole README, keeping it open costs them nothing: the sheet is
-                    // already scrollable, and dismissing it resets the state anyway.
-                    val collapsedHeightPx =
-                        with(LocalDensity.current) { README_COLLAPSED_HEIGHT_DP.dp.roundToPx() }
-
                     ReadmeWebView(
+                        webView = webView,
                         html = html,
+                        mode = ReadmeViewMode.Preview,
                         modifier = Modifier.fillMaxWidth(),
-                        // null lifts the cap entirely, revealing the already-rendered full document
-                        // — no reload, no re-parse, nothing to wait for. See ReadmeWebView's doc.
-                        maxVisibleHeightPx = if (expanded) null else collapsedHeightPx,
-                        initialContentHeightPx = contentHeightPx,
+                        onExpandRequested = onExpandRequested,
                         onContentHeightMeasured = onContentHeightMeasured,
                     )
 
                     // Only worth offering once a real measurement has landed and it actually
-                    // exceeds the collapsed window — a short README is fully visible already.
-                    if (!expanded && contentHeightPx > collapsedHeightPx) {
-                        TextButton(onClick = onExpand) {
+                    // exceeds the preview's own cap — a short README is fully visible already.
+                    val capPx = with(LocalDensity.current) { README_PREVIEW_CAP_DP.dp.roundToPx() }
+                    if (contentHeightPx > capPx) {
+                        TextButton(onClick = onExpandRequested) {
                             Text(
                                 text = stringResource(R.string.swipe_detail_readme_show_more),
                                 style = RepoSwipeTheme.typography.labelMd,
@@ -932,9 +1196,9 @@ private fun ReadmeSection(
     }
 }
 
-/** Sticky footer inside [RepoDetailSheet] — same buttons/styling as the Discover action row
+/** Sticky footer inside [RepoDetailScreen] — same buttons/styling as the Discover action row
  * (minus quick-view, since you're already looking at the detail). No GitHub/external-nav button
- * here on purpose: the small icon next to the title is the only way out of the app from this sheet. */
+ * here on purpose: the small icon next to the title is the only way out to GitHub. */
 @Composable
 private fun RepoDetailActionBar(
     onRewind: () -> Unit,
@@ -956,13 +1220,13 @@ private fun RepoDetailActionBar(
                 icon = RepoSwipeIcons.Rewind,
                 contentDescription = stringResource(R.string.swipe_action_rewind_cd),
                 onClick = onRewind,
-                size = SwipeActionButtonSize.ExtraSmall,
+                size = SwipeActionButtonSize.Small,
             )
             SwipeActionButton(
                 icon = RepoSwipeIcons.Skip,
                 contentDescription = stringResource(R.string.swipe_action_pass),
                 onClick = onReject,
-                size = SwipeActionButtonSize.ExtraSmall,
+                size = SwipeActionButtonSize.Small,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
                 contentColor = MaterialTheme.colorScheme.error,
                 borderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
@@ -971,10 +1235,11 @@ private fun RepoDetailActionBar(
                 icon = RepoSwipeIcons.Like,
                 contentDescription = stringResource(R.string.swipe_action_star),
                 onClick = onStar,
-                size = SwipeActionButtonSize.Small,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                borderColor = MaterialTheme.colorScheme.primaryContainer,
+                size = SwipeActionButtonSize.Medium,
+                // Matches the Discover screen's Like button — see its own comment.
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+                borderColor = MaterialTheme.colorScheme.error,
             )
         }
     }

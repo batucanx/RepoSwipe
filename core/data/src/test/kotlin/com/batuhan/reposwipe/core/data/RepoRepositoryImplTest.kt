@@ -3,12 +3,16 @@ package com.batuhan.reposwipe.core.data
 import com.batuhan.reposwipe.core.data.model.DiscoverFilters
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.database.AppDatabase
+import com.batuhan.reposwipe.core.database.RepoDao
+import com.batuhan.reposwipe.core.database.RepoEntity
 import com.batuhan.reposwipe.core.network.GitHubApiService
 import com.batuhan.reposwipe.core.network.model.ContributorDto
 import com.batuhan.reposwipe.core.network.model.OwnerDto
 import com.batuhan.reposwipe.core.network.model.RepoDto
 import com.batuhan.reposwipe.core.network.model.SearchRepositoriesResponseDto
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -21,10 +25,15 @@ import retrofit2.Response
 
 class RepoRepositoryImplTest {
     private val api = mockk<GitHubApiService>()
+    private val repoDao = mockk<RepoDao>()
+    private val database =
+        mockk<AppDatabase> {
+            every { repoDao() } returns repoDao
+        }
     private val repository =
         RepoRepositoryImpl(
             api = api,
-            database = mockk<AppDatabase>(),
+            database = database,
         )
 
     @Test
@@ -212,6 +221,57 @@ class RepoRepositoryImplTest {
         headerImageUrl = "",
         topics = topics,
     )
+
+    private fun repoEntity(id: Long) =
+        RepoEntity(
+            id = id,
+            query = "stars:>=100",
+            name = "reposwipe",
+            fullName = "batucanx/reposwipe",
+            ownerLogin = "batucanx",
+            ownerAvatarUrl = null,
+            description = "cached",
+            starCount = 100,
+            forkCount = 1,
+            language = "Kotlin",
+            updatedAt = "2026-01-01T00:00:00Z",
+            htmlUrl = "https://github.com/batucanx/reposwipe",
+            fetchOrder = 0,
+            topics = emptyList(),
+        )
+
+    @Test
+    fun `getRepository returns the Room-cached row without hitting the network`() =
+        runTest {
+            coEvery { repoDao.findByOwnerAndName("batucanx", "reposwipe") } returns repoEntity(id = 1L)
+
+            val result = repository.getRepository("batucanx", "reposwipe")
+
+            assertEquals("cached", result.getOrNull()?.description)
+            coVerify(exactly = 0) { api.getRepository(any(), any()) }
+        }
+
+    @Test
+    fun `getRepository falls back to the network when there is no cached row`() =
+        runTest {
+            coEvery { repoDao.findByOwnerAndName("batucanx", "reposwipe") } returns null
+            coEvery { api.getRepository("batucanx", "reposwipe") } returns repoDto(id = 1L)
+
+            val result = repository.getRepository("batucanx", "reposwipe")
+
+            assertEquals("repo-1", result.getOrNull()?.name)
+        }
+
+    @Test
+    fun `getRepository surfaces a network failure as Result failure`() =
+        runTest {
+            coEvery { repoDao.findByOwnerAndName(any(), any()) } returns null
+            coEvery { api.getRepository(any(), any()) } throws RuntimeException("offline")
+
+            val result = repository.getRepository("batucanx", "reposwipe")
+
+            assertTrue(result.isFailure)
+        }
 
     private fun repoDto(id: Long) =
         RepoDto(

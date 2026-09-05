@@ -17,6 +17,13 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface GitHubApiService {
+    /** https://docs.github.com/en/rest/repos/repos#get-a-repository */
+    @GET("repos/{owner}/{repo}")
+    suspend fun getRepository(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+    ): RepoDto
+
     /** https://docs.github.com/en/rest/search/search#search-repositories */
     @GET("search/repositories")
     suspend fun searchRepositories(
@@ -47,14 +54,32 @@ interface GitHubApiService {
      *
      * Returns `Response<Unit>` rather than Unit because GitHub answers with 204 (starred) or
      * 404 (not starred) — a bare suspend fun would surface the 404 as a thrown HttpException.
+     *
+     * `Cache-Control: max-age=0` forces OkHttp to treat the cached entry as immediately stale and
+     * revalidate with GitHub (a conditional request using the stored ETag, so an unchanged result
+     * still costs no download — plain `no-cache` would skip that conditional request entirely and
+     * force a full re-download every call) instead of trusting
+     * [NetworkModule][com.batuhan.reposwipe.core.network.di.NetworkModule]'s shared 60s
+     * `max-age` — this specific endpoint's freshness depends on *our own* just-issued
+     * star/unstar mutation, not on how long ago it was last fetched, so blind `max-age` trust
+     * served a stale pre-mutation answer for up to a minute after every toggle.
      */
+    @Headers("Cache-Control: max-age=0")
     @GET("user/starred/{owner}/{repo}")
     suspend fun isRepoStarred(
         @Path("owner") owner: String,
         @Path("repo") repo: String,
     ): Response<Unit>
 
-    /** https://docs.github.com/en/rest/activity/starring#list-repositories-starred-by-the-authenticated-user */
+    /**
+     * https://docs.github.com/en/rest/activity/starring#list-repositories-starred-by-the-authenticated-user
+     *
+     * `Cache-Control: max-age=0` — see [isRepoStarred]'s doc: this list is exactly as likely to
+     * have just been invalidated by our own star/unstar action, so it can't blindly trust the
+     * shared client's 60s `max-age` either (that's how an unstar-then-immediately-refresh on the
+     * Starred screen brought the repo right back for up to a minute).
+     */
+    @Headers("Cache-Control: max-age=0")
     @GET("user/starred")
     suspend fun getStarredRepos(
         @Query("page") page: Int,

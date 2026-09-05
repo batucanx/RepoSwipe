@@ -19,6 +19,9 @@ interface DiscoverFilterRepository {
     /** Selecting the already-selected language clears it back to "no language filter". */
     fun selectLanguage(language: String)
 
+    /** Sets the quick language explicitly. `null` is the unfiltered "For you" state. */
+    fun setLanguage(language: String?)
+
     /** Selecting the already-selected topic clears it back to "no topic filter". */
     fun selectTopic(topic: String)
 
@@ -38,6 +41,12 @@ class DiscoverFilterRepositoryImpl
 
         override fun selectLanguage(language: String) {
             _filters.update { it.copy(language = if (it.language == language) null else language) }
+        }
+
+        override fun setLanguage(language: String?) {
+            _filters.update { filters ->
+                if (filters.language == language) filters else filters.copy(language = language)
+            }
         }
 
         override fun selectTopic(topic: String) {

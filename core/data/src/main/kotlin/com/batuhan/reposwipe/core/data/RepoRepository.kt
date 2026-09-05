@@ -21,6 +21,12 @@ import retrofit2.HttpException
 import javax.inject.Inject
 
 interface RepoRepository {
+    /** Reloads a repository by stable owner/name route arguments for process-safe detail navigation. */
+    suspend fun getRepository(
+        ownerLogin: String,
+        name: String,
+    ): Result<Repo>
+
     fun searchRepos(filters: DiscoverFilters): Flow<PagingData<Repo>>
 
     /** Free-text search (e.g. the dedicated Search screen) — [freeText] is prepended to the same
@@ -62,6 +68,15 @@ class RepoRepositoryImpl
         private val api: GitHubApiService,
         private val database: AppDatabase,
     ) : RepoRepository {
+        override suspend fun getRepository(
+            ownerLogin: String,
+            name: String,
+        ): Result<Repo> =
+            runCatching {
+                database.repoDao().findByOwnerAndName(ownerLogin, name)?.toDomain()
+                    ?: api.getRepository(ownerLogin, name).toDomain()
+            }.onFailure { if (it is CancellationException) throw it }
+
         override fun searchRepos(filters: DiscoverFilters): Flow<PagingData<Repo>> = pagedSearch(buildQuery(filters))
 
         override fun searchRepos(
@@ -114,7 +129,7 @@ class RepoRepositoryImpl
 
         /**
          * A pure abuse/pathological-size backstop: [MAX_README_CHARS] only guards against a
-         * multi-megabyte README ever reaching the WebView at all. The "Devamını gör" UX no longer
+         * multi-megabyte README ever reaching the WebView at all. The "Show more" UX no longer
          * bounds render cost the way an earlier version did — `ReadmeWebView` now always renders
          * the whole document and merely *clips* it until expanded (see its doc for why: any
          * re-render on expand yanked the reader's scroll position). That parse/layout is the

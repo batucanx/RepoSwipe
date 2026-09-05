@@ -17,21 +17,15 @@ import com.batuhan.reposwipe.core.network.RateLimitObserver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.sentry.Sentry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-val DiscoverLanguages = listOf("TypeScript", "Rust", "Python", "Go")
 
 /** [Loaded.html] is null when the repo simply has no README file — a normal state, not an error.
  * It's GitHub's own already-rendered README HTML, ready to load into a WebView as-is. */
@@ -103,50 +97,17 @@ class SwipeViewModel
 
         val rateLimit: StateFlow<RateLimitInfo?> = rateLimitObserver.state
 
-        private val _readmeState = MutableStateFlow<ReadmeUiState>(ReadmeUiState.Loading)
-        val readmeState: StateFlow<ReadmeUiState> = _readmeState.asStateFlow()
-        private var readmeJob: Job? = null
-
-        private val _languageBreakdownState = MutableStateFlow<LanguageBreakdownUiState>(LanguageBreakdownUiState.Loading)
-        val languageBreakdownState: StateFlow<LanguageBreakdownUiState> = _languageBreakdownState.asStateFlow()
-        private var languageBreakdownJob: Job? = null
-
-        private val _contributorsState = MutableStateFlow<ContributorsUiState>(ContributorsUiState.Loading)
-        val contributorsState: StateFlow<ContributorsUiState> = _contributorsState.asStateFlow()
-        private var contributorsJob: Job? = null
-
-        private val _similarReposState = MutableStateFlow<SimilarReposUiState>(SimilarReposUiState.Loading)
-        val similarReposState: StateFlow<SimilarReposUiState> = _similarReposState.asStateFlow()
-        private var similarReposJob: Job? = null
-
-        private val _detailRepo = MutableStateFlow<Repo?>(null)
-
-        /** What GitHub last told us about the open repo; null until that call lands (or if it fails). */
-        private val _detailServerStarred = MutableStateFlow<Boolean?>(null)
-        private var starStateJob: Job? = null
-
-        /**
-         * Star state for the repo whose detail sheet is open — null while unknown, so the button can
-         * stay neutral rather than falsely claiming "not starred". A still-pending local toggle wins
-         * over the server's answer, so the icon flips the instant it's tapped.
-         */
-        val detailStarred: StateFlow<Boolean?> =
-            combine(
-                _detailRepo,
-                _detailServerStarred,
-                starRepository.observePendingStarStates(),
-            ) { repo, serverStarred, pending ->
-                repo?.let { pending["${it.ownerLogin}/${it.name}"] ?: serverStarred }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        // Repo ids already handed to prefetchReadme this session — not a cache of the HTML itself
+        // (that's OkHttp's disk cache, see NetworkModule.provideHttpCache), just a dedupe guard so
+        // re-swiping past the same repo (rewind, or the deck's own peek window overlapping across
+        // consecutive calls) doesn't fire a redundant network round trip for something already
+        // in flight or already on disk.
+        private val prefetchedReadmeRepoIds = mutableSetOf<Long>()
 
         init {
             // Any filter change (from this screen's quick-chip row or the full Filter screen)
             // invalidates the current swipe position — the underlying result set just changed.
             filters.onEach { _currentIndex.value = 0 }.launchIn(viewModelScope)
-        }
-
-        fun selectLanguage(language: String) {
-            discoverFilterRepository.selectLanguage(language)
         }
 
         fun onSwiped(
@@ -171,101 +132,27 @@ class SwipeViewModel
             _currentIndex.value = (_currentIndex.value - 1).coerceAtLeast(0)
         }
 
-        /** Cancels any load already in flight for a previously opened repo, so a slow response for
-         * one repo can never clobber the state of whichever repo's sheet is open now. */
-        fun loadReadme(repo: Repo) {
-            readmeJob?.cancel()
-            _readmeState.value = ReadmeUiState.Loading
-            readmeJob =
-                viewModelScope.launch {
-                    repoRepository
-                        .getReadmeHtml(repo.ownerLogin, repo.name)
-                        .onSuccess { html -> _readmeState.value = ReadmeUiState.Loaded(html) }
-                        .onFailure { _readmeState.value = ReadmeUiState.Error }
-                }
-        }
-
-        /** Same cancel-the-previous-load reasoning as [loadReadme]. */
-        fun loadLanguageBreakdown(repo: Repo) {
-            languageBreakdownJob?.cancel()
-            _languageBreakdownState.value = LanguageBreakdownUiState.Loading
-            languageBreakdownJob =
-                viewModelScope.launch {
-                    repoRepository
-                        .getLanguageBreakdown(repo.ownerLogin, repo.name)
-                        .onSuccess { languages -> _languageBreakdownState.value = LanguageBreakdownUiState.Loaded(languages) }
-                        .onFailure { _languageBreakdownState.value = LanguageBreakdownUiState.Error }
-                }
-        }
-
-        /** Same cancel-the-previous-load reasoning as [loadReadme]. */
-        fun loadContributors(repo: Repo) {
-            contributorsJob?.cancel()
-            _contributorsState.value = ContributorsUiState.Loading
-            contributorsJob =
-                viewModelScope.launch {
-                    repoRepository
-                        .getContributors(repo.ownerLogin, repo.name)
-                        .onSuccess { contributors -> _contributorsState.value = ContributorsUiState.Loaded(contributors) }
-                        .onFailure { _contributorsState.value = ContributorsUiState.Error }
-                }
-        }
-
-        /** Same cancel-the-previous-load reasoning as [loadReadme]. */
-        fun loadSimilarRepos(repo: Repo) {
-            similarReposJob?.cancel()
-            _similarReposState.value = SimilarReposUiState.Loading
-            similarReposJob =
-                viewModelScope.launch {
-                    repoRepository
-                        .getSimilarRepos(repo)
-                        .onSuccess { repos -> _similarReposState.value = SimilarReposUiState.Loaded(repos) }
-                        .onFailure { _similarReposState.value = SimilarReposUiState.Error }
-                }
-        }
-
-        /** Same cancel-the-previous-load reasoning as [loadReadme]. */
-        fun onDetailOpened(repo: Repo) {
-            loadReadme(repo)
-            loadLanguageBreakdown(repo)
-            loadContributors(repo)
-            loadSimilarRepos(repo)
-            starStateJob?.cancel()
-            _detailRepo.value = repo
-            _detailServerStarred.value = null
-            starStateJob =
-                viewModelScope.launch {
-                    _detailServerStarred.value =
-                        runCatching { starRepository.isStarred(repo.ownerLogin, repo.name) }
-                            .onFailure { Sentry.captureException(it) }
-                            .getOrNull()
-                }
-        }
-
-        fun onDetailClosed() {
-            starStateJob?.cancel()
-            languageBreakdownJob?.cancel()
-            contributorsJob?.cancel()
-            similarReposJob?.cancel()
-            _detailRepo.value = null
-            _detailServerStarred.value = null
+        /** Quick category tabs are single-select; selecting the active tab is intentionally a no-op. */
+        fun setQuickLanguage(language: String?) {
+            discoverFilterRepository.setLanguage(language)
         }
 
         /**
-         * The real GitHub star, independent of the swipe deck — this is what makes a repo's detail
-         * sheet a place you can star from, rather than only being able to star by swiping the card.
+         * Warms the OkHttp disk cache for a repo the deck currently has loaded or peeking, well
+         * before its detail sheet is ever opened — called from [com.batuhan.reposwipe.feature.swipe.SwipeScreen]
+         * for the deck's whole visible window (front card plus the up-to-2 peeking behind it) every
+         * time that window shifts, i.e. on every swipe. GitHub sends `ETag`/`Cache-Control` on this
+         * response, so by the time the user actually taps into one of these repos, [RepoDetailViewModel]'s
+         * real fetch is a disk hit or a 304 instead of a full network round trip — the difference
+         * between the detail screen's README appearing instantly and a visible loading spinner.
+         *
+         * Its failures are silently dropped — a failed prefetch just means the detail screen's own
+         * load pays the normal cost later, exactly as if this had never run.
          */
-        fun toggleDetailStar() {
-            val repo = _detailRepo.value ?: return
-            val currentlyStarred = detailStarred.value ?: false
+        fun prefetchReadme(repo: Repo) {
+            if (!prefetchedReadmeRepoIds.add(repo.id)) return
             viewModelScope.launch {
-                runCatching {
-                    if (currentlyStarred) {
-                        starRepository.unstarRepo(repo.ownerLogin, repo.name)
-                    } else {
-                        starRepository.starRepo(repo.ownerLogin, repo.name)
-                    }
-                }.onFailure { Sentry.captureException(it) }
+                runCatching { repoRepository.getReadmeHtml(repo.ownerLogin, repo.name) }
             }
         }
     }
