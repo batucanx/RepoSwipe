@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.batuhan.reposwipe.core.common.theme.ThemeMode
 import com.batuhan.reposwipe.core.datastore.ThemePreferencesDataStore
-import com.batuhan.reposwipe.core.datastore.TokenDataStore
+import com.batuhan.reposwipe.feature.auth.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +18,7 @@ class SettingsViewModel
     @Inject
     constructor(
         private val themePreferencesDataStore: ThemePreferencesDataStore,
-        private val tokenDataStore: TokenDataStore,
+        private val authRepository: AuthRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -35,10 +35,12 @@ class SettingsViewModel
             viewModelScope.launch { themePreferencesDataStore.setThemeMode(mode) }
         }
 
-        // AuthRepository.isAuthenticated derives from this same token store, so clearing it here
-        // reactively flips the app back to the auth screen (see RepoSwipeNavHost) — no separate
-        // "signed out" event needs to be threaded back out of this screen.
+        // AuthRepository.isAuthenticated derives from the same token store AuthRepository.signOut()
+        // clears, so this reactively flips the app back to the auth screen (see RepoSwipeNavHost) —
+        // no separate "signed out" event needs to be threaded back out of this screen. Going through
+        // AuthRepository (rather than clearing TokenDataStore directly) also signs out of Firebase,
+        // keeping its session in sync with the local one.
         fun signOut() {
-            viewModelScope.launch { tokenDataStore.clearAccessToken() }
+            viewModelScope.launch { authRepository.signOut() }
         }
     }

@@ -9,5 +9,4 @@ data class ProfileUiState(
     val error: UiText? = null,
     val user: User? = null,
     val recentRepos: List<Repo> = emptyList(),
-    val signedOut: Boolean = false,
 )

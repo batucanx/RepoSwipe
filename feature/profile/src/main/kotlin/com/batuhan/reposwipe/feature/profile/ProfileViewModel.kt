@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.batuhan.reposwipe.core.common.text.UiText
 import com.batuhan.reposwipe.core.data.UserRepository
-import com.batuhan.reposwipe.core.datastore.TokenDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +18,6 @@ class ProfileViewModel
     @Inject
     constructor(
         private val userRepository: UserRepository,
-        private val tokenDataStore: TokenDataStore,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(ProfileUiState())
         val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -29,13 +27,6 @@ class ProfileViewModel
         }
 
         fun retry() = refresh()
-
-        fun signOut() {
-            viewModelScope.launch {
-                tokenDataStore.clearAccessToken()
-                _uiState.update { it.copy(signedOut = true) }
-            }
-        }
 
         private fun refresh() {
             viewModelScope.launch {

@@ -3,9 +3,7 @@ package com.batuhan.reposwipe.feature.profile
 import com.batuhan.reposwipe.core.data.UserRepository
 import com.batuhan.reposwipe.core.data.model.Repo
 import com.batuhan.reposwipe.core.data.model.User
-import com.batuhan.reposwipe.core.datastore.TokenDataStore
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,7 +24,6 @@ import org.junit.Test
 class ProfileViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val userRepository = mockk<UserRepository>()
-    private val tokenDataStore = mockk<TokenDataStore>()
 
     private val user = User(login = "batucanx", name = "Batu", avatarUrl = null, publicRepos = 10, followers = 5, following = 3)
 
@@ -46,7 +43,7 @@ class ProfileViewModelTest {
         runTest {
             coEvery { userRepository.getCurrentUser() } returns user
 
-            val viewModel = ProfileViewModel(userRepository, tokenDataStore)
+            val viewModel = ProfileViewModel(userRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -60,7 +57,7 @@ class ProfileViewModelTest {
         runTest {
             coEvery { userRepository.getCurrentUser() } throws RuntimeException("offline")
 
-            val viewModel = ProfileViewModel(userRepository, tokenDataStore)
+            val viewModel = ProfileViewModel(userRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -91,7 +88,7 @@ class ProfileViewModelTest {
             coEvery { userRepository.getCurrentUser() } returns user
             coEvery { userRepository.getRecentRepos(any()) } returns repos
 
-            val viewModel = ProfileViewModel(userRepository, tokenDataStore)
+            val viewModel = ProfileViewModel(userRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(repos, viewModel.uiState.value.recentRepos)
@@ -103,26 +100,11 @@ class ProfileViewModelTest {
             coEvery { userRepository.getCurrentUser() } returns user
             coEvery { userRepository.getRecentRepos(any()) } throws RuntimeException("offline")
 
-            val viewModel = ProfileViewModel(userRepository, tokenDataStore)
+            val viewModel = ProfileViewModel(userRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             val state = viewModel.uiState.value
             assertTrue(state.recentRepos.isEmpty())
             assertNull(state.error)
-        }
-
-    @Test
-    fun `signOut clears the stored access token`() =
-        runTest {
-            coEvery { userRepository.getCurrentUser() } returns user
-            coEvery { tokenDataStore.clearAccessToken() } returns Unit
-            val viewModel = ProfileViewModel(userRepository, tokenDataStore)
-            dispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.signOut()
-            dispatcher.scheduler.advanceUntilIdle()
-
-            coVerify { tokenDataStore.clearAccessToken() }
-            assertTrue(viewModel.uiState.value.signedOut)
         }
 }

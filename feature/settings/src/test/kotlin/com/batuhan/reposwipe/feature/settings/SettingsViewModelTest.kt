@@ -2,7 +2,7 @@ package com.batuhan.reposwipe.feature.settings
 
 import com.batuhan.reposwipe.core.common.theme.ThemeMode
 import com.batuhan.reposwipe.core.datastore.ThemePreferencesDataStore
-import com.batuhan.reposwipe.core.datastore.TokenDataStore
+import com.batuhan.reposwipe.feature.auth.data.AuthRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -23,7 +23,7 @@ import org.junit.Test
 class SettingsViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val themePreferencesDataStore = mockk<ThemePreferencesDataStore>()
-    private val tokenDataStore = mockk<TokenDataStore>()
+    private val authRepository = mockk<AuthRepository>()
 
     @Before
     fun setUp() {
@@ -40,7 +40,7 @@ class SettingsViewModelTest {
         runTest {
             every { themePreferencesDataStore.themeMode } returns flowOf(ThemeMode.DARK)
 
-            val viewModel = SettingsViewModel(themePreferencesDataStore, tokenDataStore)
+            val viewModel = SettingsViewModel(themePreferencesDataStore, authRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(ThemeMode.DARK, viewModel.uiState.value.themeMode)
@@ -51,7 +51,7 @@ class SettingsViewModelTest {
         runTest {
             every { themePreferencesDataStore.themeMode } returns flowOf(ThemeMode.SYSTEM)
             coEvery { themePreferencesDataStore.setThemeMode(any()) } returns Unit
-            val viewModel = SettingsViewModel(themePreferencesDataStore, tokenDataStore)
+            val viewModel = SettingsViewModel(themePreferencesDataStore, authRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             viewModel.setThemeMode(ThemeMode.LIGHT)
@@ -61,16 +61,16 @@ class SettingsViewModelTest {
         }
 
     @Test
-    fun `signOut clears the stored access token`() =
+    fun `signOut delegates to AuthRepository`() =
         runTest {
             every { themePreferencesDataStore.themeMode } returns flowOf(ThemeMode.SYSTEM)
-            coEvery { tokenDataStore.clearAccessToken() } returns Unit
-            val viewModel = SettingsViewModel(themePreferencesDataStore, tokenDataStore)
+            coEvery { authRepository.signOut() } returns Unit
+            val viewModel = SettingsViewModel(themePreferencesDataStore, authRepository)
             dispatcher.scheduler.advanceUntilIdle()
 
             viewModel.signOut()
             dispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { tokenDataStore.clearAccessToken() }
+            coVerify { authRepository.signOut() }
         }
 }

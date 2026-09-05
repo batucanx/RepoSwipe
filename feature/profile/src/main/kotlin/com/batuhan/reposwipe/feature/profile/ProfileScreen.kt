@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,9 +43,9 @@ import coil.compose.AsyncImage
 import com.batuhan.reposwipe.core.common.format.toCompactCount
 import com.batuhan.reposwipe.core.common.format.toRelativeTimeLabel
 import com.batuhan.reposwipe.core.data.model.Repo
-import com.batuhan.reposwipe.core.designsystem.component.DangerActionRow
 import com.batuhan.reposwipe.core.designsystem.component.EmptyState
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeTopAppBar
+import com.batuhan.reposwipe.core.designsystem.component.navyCardSurface
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.text.asString
 import com.batuhan.reposwipe.core.designsystem.theme.BrandAccent
@@ -55,7 +54,6 @@ import com.batuhan.reposwipe.core.designsystem.R as DesignSystemR
 
 @Composable
 fun ProfileScreen(
-    onSignedOut: () -> Unit,
     onMenuClick: () -> Unit,
     onFollowersClick: () -> Unit,
     onFollowingClick: () -> Unit,
@@ -64,10 +62,6 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-
-    LaunchedEffect(uiState.signedOut) {
-        if (uiState.signedOut) onSignedOut()
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
         RepoSwipeTopAppBar(
@@ -98,8 +92,8 @@ fun ProfileScreen(
                 if (user != null) {
                     // Scrollable, not pinned-to-bottom-via-weight: with the Recent Repositories
                     // section, total content height can exceed the screen on smaller devices —
-                    // a fixed-height Column with a weight(1f) spacer just let the sign-out button
-                    // (and the last repo row) get squeezed or clipped instead of laying out.
+                    // a fixed-height Column with a weight(1f) spacer just let the last repo row
+                    // get squeezed or clipped instead of laying out.
                     Column(
                         modifier =
                             Modifier
@@ -144,15 +138,6 @@ fun ProfileScreen(
                                 },
                             )
                         }
-
-                        // A quiet closing action rather than the screen's main CTA — signing out
-                        // shouldn't visually compete with the profile content above it.
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        DangerActionRow(
-                            icon = RepoSwipeIcons.SignOut,
-                            label = stringResource(R.string.profile_sign_out),
-                            onClick = viewModel::signOut,
-                        )
                     }
                 }
             }
@@ -304,8 +289,16 @@ private fun ProfileIdentityHeader(
     }
 }
 
-/** Repos/Followers/Following as one continuous strip instead of a header-trailing stat plus a
- * separate 2-box row below it. */
+/**
+ * Repos/Followers/Following as one continuous strip instead of a header-trailing stat plus a
+ * separate 2-box row below it.
+ *
+ * Fixed navy background ([navyCardSurface]) rather than the theme-driven `surfaceContainer` glass
+ * treatment — matching [RepoCard]/[com.batuhan.reposwipe.core.designsystem.component.RepoListItem], which read
+ * a pale "whitish" strip on light theme's near-white page otherwise. Text below uses fixed light
+ * tones for the same reason: `primaryContainer`/`secondary` flip dark-on-light in light mode and
+ * would go illegible on a strip that no longer flips with them.
+ */
 @Composable
 private fun ProfileStatsRow(
     reposValue: String,
@@ -323,8 +316,7 @@ private fun ProfileStatsRow(
                 // Clips the segment ripples below to the row's own rounded corners — without it
                 // the outer segments' rectangular ripple pokes past the rounded border.
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f), shape)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f), shape)
+                .navyCardSurface(shape)
                 .padding(vertical = RepoSwipeTheme.spacing.sm),
     ) {
         ProfileStatColumn(modifier = Modifier.weight(1f), value = reposValue, label = stringResource(R.string.profile_stat_repos))
@@ -352,7 +344,7 @@ private fun ProfileStatDivider() {
             Modifier
                 .width(1.dp)
                 .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.outlineVariant),
+                .background(Color.White.copy(alpha = 0.18f)),
     )
 }
 
@@ -374,12 +366,12 @@ private fun ProfileStatColumn(
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = Color.White,
         )
         Text(
             text = label.uppercase(),
             style = RepoSwipeTheme.typography.labelMd,
-            color = MaterialTheme.colorScheme.secondary,
+            color = Color.White.copy(alpha = 0.72f),
         )
     }
 }
