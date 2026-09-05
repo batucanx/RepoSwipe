@@ -146,6 +146,31 @@
     in the app's <a href="https://github.com/batucanx/RepoSwipe/commits/main/docs/index.html">GitHub commit history</a>.
   </p>
 
+  <h2 id="account-deletion">Account and data deletion</h2>
+  <p>
+    RepoSwipe doesn't run its own account system &mdash; you sign in with your existing GitHub
+    account, and most of what the app touches is already covered above. Here's how to delete
+    everything tied to your use of RepoSwipe:
+  </p>
+  <ol>
+    <li><strong>Local sign-in token</strong>: Settings &rarr; Sign Out inside the app deletes it
+      from your device immediately.</li>
+    <li><strong>GitHub's access grant to RepoSwipe</strong>: revoke it any time at
+      <a href="https://github.com/settings/applications">github.com/settings/applications</a>.</li>
+    <li><strong>Firebase sign-in record</strong>: signing in creates a minimal Firebase
+      Authentication entry (just enough to complete GitHub sign-in) tied to your GitHub identity.
+      To have this deleted, open an issue on the
+      <a href="https://github.com/batucanx/RepoSwipe/issues">RepoSwipe GitHub repository</a>
+      requesting account deletion. It will be deleted within 30 days.</li>
+  </ol>
+  <p>What's retained, and for how long:</p>
+  <ul>
+    <li><strong>"Trending Today" leaderboard entries</strong> were never linked to your identity
+      to begin with (see above), so there's nothing tied to you to delete there.</li>
+    <li><strong>Sentry crash/performance reports</strong> aren't linked to your identity either,
+      and are retained per Sentry's own data retention policy.</li>
+  </ul>
+
   <h2>Contact</h2>
   <p>
     Questions about this policy or your data can be raised as an issue on the
