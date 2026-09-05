@@ -31,6 +31,7 @@ pagingTesting = "3.3.2"
 firebaseBom = "33.5.1"
 googleServices = "4.4.2"
 sentryAndroid = "8.49.0"
+sentryGradlePlugin = "6.14.0"
 androidxBrowser = "1.8.0"
 kover = "0.8.3"
 detekt = "1.23.7"
@@ -97,6 +98,8 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentryAndroid" }
+firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
+firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug" }
 
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
@@ -123,3 +126,4 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentryGradlePlugin" }

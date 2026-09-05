@@ -13,6 +13,7 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 - **Profile** — GitHub account stats, recent repositories, and sign-out
 - **GitHub sign-in via Firebase Authentication** — no password entry in-app; the GitHub access token is stored encrypted afterward (DataStore + Android Keystore/Tink)
 - Crash and performance monitoring via Sentry
+- [Privacy policy](docs/index.html), published via GitHub Pages
 
 ## Tech stack
 
@@ -24,6 +25,7 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 - **Backend**: Firebase Firestore (leaderboard aggregation)
 - **Async**: Kotlin Coroutines + Flow
 - **Observability**: Sentry (crash reporting + performance tracing)
+- **Security**: Firebase App Check (Play Integrity in release builds, debug provider in debug builds) attests that Firestore/Auth calls come from a genuine build of this app
 - **Quality**: detekt (static analysis) + ktlint (formatting), enforced in CI
 
 ## Module structure
@@ -51,6 +53,7 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
 - Android Studio (Koala or newer) / JDK 17
 - A Firebase project with a GitHub OAuth App wired up as a sign-in provider — **required**, the app can't get past the sign-in screen without it. Create the OAuth App at [github.com/settings/developers](https://github.com/settings/developers), then in the Firebase Console go to Authentication → Sign-in method → add **GitHub**, paste that App's Client ID/Secret, and copy the callback URL Firebase generates there back into the OAuth App's own "Authorization callback URL"
 - Optional: Firestore enabled on that same Firebase project (for the leaderboard) and a Sentry project (for crash reporting) — the app runs without either, those two features just no-op
+- Optional (debug builds only): a Firebase App Check debug token, registered under App Check → Apps in the Firebase Console. Debug builds print an unregistered-token warning to Logcat on first run with the token to register; without registering it, App Check-enforced Firebase calls (once enforcement is turned on) will fail on that device
 
 ### Setup
 
@@ -59,6 +62,9 @@ A Tinder-style Android app for discovering GitHub repositories — swipe right t
    ```properties
    sdk.dir=/path/to/your/Android/Sdk
    sentry.dsn=https://...@....ingest.sentry.io/...   # optional
+   sentry.org=...           # optional — enables ProGuard mapping upload on release builds
+   sentry.project=...       # optional
+   sentry.authToken=...     # optional — mapping upload is skipped (not a build failure) if unset
    ```
 3. Drop your Firebase project's `google-services.json` into `app/` — required even before Firestore/leaderboard is wired up, since the Gradle plugin needs *a* file present just to build
 4. Build: `./gradlew build`, or open in Android Studio and run

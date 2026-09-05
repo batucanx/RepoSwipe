@@ -9,6 +9,9 @@ import coil.ImageLoaderFactory
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.decode.SvgDecoder
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.android.core.SentryAndroid
 import javax.inject.Inject
@@ -31,6 +34,18 @@ class RepoSwipeApp :
             options.tracesSampleRate = 0.2
             options.isDebug = BuildConfig.DEBUG
         }
+
+        // Debug builds attest via a per-install debug token (registered in the Firebase console
+        // under App Check > Apps) instead of a real Play Integrity verdict, since Play Integrity
+        // requires the app to be signed/distributed through Play. Must run before any other
+        // Firebase product (Auth/Firestore) makes its first call.
+        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
+            if (BuildConfig.DEBUG) {
+                DebugAppCheckProviderFactory.getInstance()
+            } else {
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            },
+        )
     }
 
     // Coil doesn't decode animated GIFs or SVGs by default, and repo/user avatars, header images,

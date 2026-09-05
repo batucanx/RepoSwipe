@@ -8,19 +8,23 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.androidx.baselineprofile)
+    alias(libs.plugins.sentry)
 }
 
-// Sentry DSN — never committed. Add a line `sentry.dsn=https://...` to the
-// (gitignored) root local.properties. Blank DSN makes the Sentry SDK a no-op.
-val sentryDsn: String =
-    run {
-        val properties = Properties()
+// Sentry config — never committed. Add these lines to the (gitignored) root local.properties:
+//   sentry.dsn=https://...        (blank DSN makes the Sentry SDK itself a no-op)
+//   sentry.org=...
+//   sentry.project=...
+//   sentry.authToken=...          (blank token skips ProGuard mapping upload instead of failing the build)
+val sentryProperties =
+    Properties().apply {
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
-            localPropertiesFile.inputStream().use { properties.load(it) }
+            localPropertiesFile.inputStream().use { load(it) }
         }
-        properties.getProperty("sentry.dsn", "")
     }
+val sentryDsn: String = sentryProperties.getProperty("sentry.dsn", "")
+val sentryAuthToken: String = sentryProperties.getProperty("sentry.authToken", "")
 
 // Release signing — keystore.properties (gitignored) and the .keystore file it points to are
 // never committed. Without it, `assembleRelease`/`bundleRelease` fall back to no signing config
@@ -99,6 +103,17 @@ android {
     }
 }
 
+// Uploads the release build's ProGuard/R8 mapping file to Sentry so crash stack traces from
+// production (isMinifyEnabled = true, above) show real symbol names instead of obfuscated ones.
+// Auto-upload is skipped entirely — rather than failing the build — when no auth token is
+// configured, same no-op-when-unconfigured shape as the SENTRY_DSN handling above.
+sentry {
+    org.set(sentryProperties.getProperty("sentry.org", ""))
+    projectName.set(sentryProperties.getProperty("sentry.project", ""))
+    authToken.set(sentryAuthToken)
+    autoUploadProguardMapping.set(sentryAuthToken.isNotBlank())
+}
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:common"))
@@ -142,6 +157,13 @@ dependencies {
     implementation(libs.coil.svg)
 
     implementation(libs.sentry.android)
+
+    // App Check: attests that Firestore/Auth calls come from a genuine, unmodified build of this
+    // app before Firebase honors them. Debug provider lets local/debug builds pass without a real
+    // Play Integrity attestation — see RepoSwipeApp.onCreate() for which provider gets installed.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
 
     // Installs the Baseline Profile that :baselineprofile generates (and the ones Compose/Paging
     // ship inside their own AARs) into ART at first run. Without this dependency the profile is

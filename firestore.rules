@@ -5,9 +5,10 @@ rules_version = '2';
 // now (GitHub OAuth, see feature/auth's AuthRepository), but that's unrelated to these writes —
 // LeaderboardRepository never reads request.auth, so these rules still can't rely on it. Instead
 // they constrain the *shape* of every write so a client can only ever record "one more swipe for
-// a repo today", never overwrite/delete other data or set arbitrary field values. This is not a
-// substitute for App Check (recommended as the next layer — see README) but it closes the "can
-// write anything at all" hole.
+// a repo today", never overwrite/delete other data or set arbitrary field values. App Check is
+// now wired into RepoSwipeApp.onCreate() as an additional layer (attests requests come from a
+// genuine app build), but these shape rules stand on their own regardless of whether App Check
+// enforcement is turned on in the console.
 //
 // Deploy: paste this file's contents into Firebase Console → Firestore Database → Rules, or via
 // the Firebase CLI (`firebase deploy --only firestore:rules`) if this project is wired up with
