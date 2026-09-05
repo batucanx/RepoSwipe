@@ -1,11 +1,12 @@
 <resources>
-    <string name="leaderboard_error_title">Sıralama yüklenemedi</string>
-    <string name="leaderboard_error_message">Sıralama yüklenemedi.</string>
-    <string name="leaderboard_action_retry">Tekrar Dene</string>
-    <string name="leaderboard_empty_title">Sıralama henüz boş</string>
-    <string name="leaderboard_empty_message">Star verdiğin repolar burada görünür ve sıralanır.</string>
-    <string name="leaderboard_empty_action">Discover\'a Git</string>
-    <string name="leaderboard_load_more">Daha Fazla Yükle</string>
+    <string name="leaderboard_search_cd">Search repos</string>
+    <string name="leaderboard_error_title">Couldn\'t load the leaderboard</string>
+    <string name="leaderboard_error_message">Couldn\'t load the leaderboard.</string>
+    <string name="leaderboard_action_retry">Retry</string>
+    <string name="leaderboard_empty_title">The leaderboard is empty</string>
+    <string name="leaderboard_empty_message">Repos you star will show up here, ranked.</string>
+    <string name="leaderboard_empty_action">Go to Discover</string>
+    <string name="leaderboard_load_more">Load More</string>
     <string name="leaderboard_global_rankings">IN-APP RANKINGS</string>
     <string name="leaderboard_title">Today\'s Top Swipes</string>
     <string name="leaderboard_subtitle">The most-starred repositories among RepoSwipe users today. Updated in real-time.</string>

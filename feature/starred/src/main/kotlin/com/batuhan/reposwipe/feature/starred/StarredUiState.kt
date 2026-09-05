@@ -9,6 +9,7 @@ data class StarredUiState(
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: UiText? = null,
+    val transientError: UiText? = null,
     val user: User? = null,
     val repos: List<Repo> = emptyList(),
     val loadedCount: Int = 0,

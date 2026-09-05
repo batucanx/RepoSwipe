@@ -7,15 +7,17 @@ import com.batuhan.reposwipe.feature.leaderboard.LeaderboardScreen
 const val LEADERBOARD_ROUTE = "leaderboard"
 
 fun NavGraphBuilder.leaderboardScreen(
-    onFiltersClick: () -> Unit,
+    onSearchClick: () -> Unit,
     onMenuClick: () -> Unit,
     onNavigateToDiscover: () -> Unit,
+    onOpenDetail: (owner: String, repo: String) -> Unit,
 ) {
     composable(LEADERBOARD_ROUTE) {
         LeaderboardScreen(
-            onFiltersClick = onFiltersClick,
+            onSearchClick = onSearchClick,
             onMenuClick = onMenuClick,
             onNavigateToDiscover = onNavigateToDiscover,
+            onOpenDetail = onOpenDetail,
         )
     }
 }

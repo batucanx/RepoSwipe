@@ -9,8 +9,9 @@ const val STARRED_ROUTE = "starred"
 fun NavGraphBuilder.starredScreen(
     onFiltersClick: () -> Unit,
     onMenuClick: () -> Unit,
+    onOpenDetail: (owner: String, repo: String) -> Unit,
 ) {
     composable(STARRED_ROUTE) {
-        StarredScreen(onFiltersClick = onFiltersClick, onMenuClick = onMenuClick)
+        StarredScreen(onFiltersClick = onFiltersClick, onMenuClick = onMenuClick, onOpenDetail = onOpenDetail)
     }
 }

@@ -1,7 +1,10 @@
 package com.batuhan.reposwipe.feature.leaderboard
 
-import android.content.Intent
-import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -35,7 +39,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,16 +50,27 @@ import com.batuhan.reposwipe.core.common.format.toCompactCount
 import com.batuhan.reposwipe.core.data.model.LeaderboardEntry
 import com.batuhan.reposwipe.core.designsystem.component.EmptyState
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeTopAppBar
+import com.batuhan.reposwipe.core.designsystem.component.collectIsScrollingDownAsState
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.text.asString
+import com.batuhan.reposwipe.core.designsystem.theme.CardBackgroundNavy
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import com.batuhan.reposwipe.core.designsystem.theme.languageColor
 
-// Podium tiers — rank 1 keeps the app's signature blue-purple brand gradient; 2nd/3rd get
-// silver/bronze so the top of the list reads as a hierarchy at a glance instead of a flat list.
-private val GoldGradient = Brush.linearGradient(listOf(Color(0xFF0969DA), Color(0xFF7E57C5)))
+// Podium tiers — rank 1 keeps a signature two-tone gradient; 2nd/3rd get silver/bronze so the top
+// of the list reads as a hierarchy at a glance instead of a flat list. The gradient's blue→purple
+// pairing (from the brand accent's old "Matte Neutral + Violet" purple) is now blue→navy
+// (2026-09-04, French-tricolor reskin exploration) since that purple is gone from the palette —
+// the blue start stop is untouched, still the app's general accent color.
+private val GoldGradient = Brush.linearGradient(listOf(Color(0xFF0969DA), CardBackgroundNavy))
 private val SilverGradient = Brush.linearGradient(listOf(Color(0xFF9AA5B5), Color(0xFF6B7688)))
 private val BronzeGradient = Brush.linearGradient(listOf(Color(0xFFC97C4B), Color(0xFF8B4F2A)))
+
+// Frosted-glass row styling: a faint onSurface wash plus a barely-there rim of the same color,
+// tuned so the row reads as a translucent panel rather than either a flat gray card or a
+// barely-visible line.
+private const val GLASS_FILL_ALPHA = 0.06f
+private const val GLASS_BORDER_ALPHA = 0.12f
 
 private fun podiumGradient(rank: Int): Brush? =
     when (rank) {
@@ -68,18 +82,34 @@ private fun podiumGradient(rank: Int): Brush? =
 
 @Composable
 fun LeaderboardScreen(
-    onFiltersClick: () -> Unit,
+    onSearchClick: () -> Unit,
     onMenuClick: () -> Unit,
     onNavigateToDiscover: () -> Unit,
+    onOpenDetail: (owner: String, repo: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LeaderboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val starredStates by viewModel.starredStates.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val isScrollingDown by listState.collectIsScrollingDownAsState()
 
     Column(modifier = modifier.fillMaxSize()) {
-        RepoSwipeTopAppBar(onMenuClick = onMenuClick, onTrailingClick = onFiltersClick)
+        // The whole bar collapses away (not just its logo) so the list below actually gains that
+        // screen space while scrolled, instead of the bar staying the same height with an empty
+        // gap where the logo used to be.
+        AnimatedVisibility(
+            visible = !isScrollingDown || listState.firstVisibleItemIndex == 0,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            RepoSwipeTopAppBar(
+                onMenuClick = onMenuClick,
+                onTrailingClick = onSearchClick,
+                trailingIcon = RepoSwipeIcons.Search,
+                trailingContentDescription = stringResource(R.string.leaderboard_search_cd),
+            )
+        }
 
         when {
             uiState.isLoading ->
@@ -103,6 +133,7 @@ fun LeaderboardScreen(
                     onRefresh = viewModel::refresh,
                 ) {
                     LazyColumn(
+                        state = listState,
                         contentPadding = PaddingValues(RepoSwipeTheme.spacing.gutter),
                         verticalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
                     ) {
@@ -132,9 +163,7 @@ fun LeaderboardScreen(
                                     rank = index + 1,
                                     entry = entry,
                                     starred = starredStates[starKey(entry)] == true,
-                                    onOpenGitHub = {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(entry.htmlUrl)))
-                                    },
+                                    onOpenDetail = { onOpenDetail(entry.ownerLogin, entry.repoName) },
                                     onToggleStar = { viewModel.toggleStar(entry) },
                                 )
                             }
@@ -214,28 +243,29 @@ private fun LeaderboardRow(
     rank: Int,
     entry: LeaderboardEntry,
     starred: Boolean,
-    onOpenGitHub: () -> Unit,
+    onOpenDetail: () -> Unit,
     onToggleStar: () -> Unit,
 ) {
     val shape = MaterialTheme.shapes.large
     val isChampion = rank == 1
-    val borderBrush = podiumGradient(rank) ?: SolidColor(MaterialTheme.colorScheme.outlineVariant)
-    val backgroundBrush =
-        if (isChampion) {
-            // 0.22 read fine in dark mode (a near-black onSurface text sits on it regardless) but
-            // was too opaque in light mode — primaryContainer there is near-black, so the tint
-            // muddied the card and fought the onSurfaceVariant description text sitting on top of
-            // it. Softer alpha keeps the champion card visually distinct without hurting either
-            // theme's readability.
-            Brush.linearGradient(
-                listOf(
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.14f),
-                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.14f),
-                ),
-            )
-        } else {
-            SolidColor(MaterialTheme.colorScheme.surfaceContainer)
-        }
+    // onSurface rather than a fixed color so the glass rim/wash lightens against dark theme's
+    // near-black surface and darkens against light theme's near-white one — either direction
+    // reads as "frosted," a single fixed tint wouldn't. Podium ranks keep their colored rim on
+    // top of this; anything past 3rd gets the plain frosted edge instead of a flat outlineVariant
+    // line, so it reads as a glass rim rather than a generic Material outline.
+    val glassTint = MaterialTheme.colorScheme.onSurface
+    val borderBrush = podiumGradient(rank) ?: SolidColor(glassTint.copy(alpha = GLASS_BORDER_ALPHA))
+    // 0.22 read fine in dark mode (a near-black onSurface text sits on it regardless) but was too
+    // opaque in light mode — primaryContainer there is near-black, so the tint muddied the card
+    // and fought the onSurfaceVariant description text sitting on top of it. Softer alpha keeps
+    // the champion card visually distinct without hurting either theme's readability.
+    val championTintBrush =
+        Brush.linearGradient(
+            listOf(
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.14f),
+                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.14f),
+            ),
+        )
 
     Row(
         modifier =
@@ -245,16 +275,23 @@ private fun LeaderboardRow(
                     elevation = if (isChampion) 12.dp else 3.dp,
                     shape = shape,
                     ambientColor = if (isChampion) Color(0xFF0969DA).copy(alpha = 0.4f) else Color.Black.copy(alpha = 0.25f),
-                    spotColor = if (isChampion) Color(0xFF7E57C5).copy(alpha = 0.4f) else Color.Black.copy(alpha = 0.25f),
+                    spotColor = if (isChampion) CardBackgroundNavy.copy(alpha = 0.4f) else Color.Black.copy(alpha = 0.25f),
                 )
                 // .background()/.border() are shape-aware for their own paint, but without this
                 // clip the ripple clickable() draws below isn't — it renders across the row's
                 // full rectangular layout bounds, poking a hard-edged rectangle out past the
                 // rounded corners instead of respecting them.
                 .clip(shape)
-                .background(backgroundBrush, shape)
+                // Opaque surfaceContainer first — it's what blocks the shadow above from bleeding
+                // through the translucent glass tint that follows (see the fix this replaced: a
+                // translucent fill directly over that shadow showed it through as a visible
+                // rectangular smudge). The glass tint layers on top of that same opaque base in
+                // both themes, rather than on the page background directly.
+                .background(MaterialTheme.colorScheme.surfaceContainer, shape)
+                .background(glassTint.copy(alpha = GLASS_FILL_ALPHA), shape)
+                .then(if (isChampion) Modifier.background(championTintBrush, shape) else Modifier)
                 .border(if (isChampion) 1.5.dp else 1.dp, borderBrush, shape)
-                .clickable(onClick = onOpenGitHub)
+                .clickable(onClick = onOpenDetail)
                 .padding(RepoSwipeTheme.spacing.md),
         horizontalArrangement = Arrangement.spacedBy(RepoSwipeTheme.spacing.md),
     ) {
