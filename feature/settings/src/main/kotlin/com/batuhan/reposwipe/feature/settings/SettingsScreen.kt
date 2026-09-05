@@ -38,6 +38,10 @@ import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 
 private const val GITHUB_REPO_URL = "https://github.com/batucanx/RepoSwipe"
 
+// Served via GitHub Pages from this repo's docs/index.html (Settings > Pages > Deploy from
+// branch > main > /docs) — the URL Play Console's Data Safety form also links to.
+private const val PRIVACY_POLICY_URL = "https://batucanx.github.io/RepoSwipe/"
+
 @Composable
 fun SettingsScreen(
     onClose: () -> Unit,
@@ -186,6 +190,29 @@ private fun AboutSection() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Icon(
+                    imageVector = RepoSwipeIcons.OpenExternal,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
+                        }.padding(RepoSwipeTheme.spacing.md),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_privacy_policy),
+                    style = RepoSwipeTheme.typography.bodySm,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Icon(
                     imageVector = RepoSwipeIcons.OpenExternal,
                     contentDescription = null,

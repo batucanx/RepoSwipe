@@ -11,4 +11,5 @@
     <string name="settings_version">Version %1$s</string>
     <string name="settings_view_source">View Source on GitHub</string>
     <string name="settings_view_source_subtitle">batucanx/RepoSwipe</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
 </resources>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RepoSwipe Privacy Policy</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1c1c1f;
+    --fg-muted: #57606a;
+    --accent: #8957e5;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0b;
+      --fg: #e6e6e6;
+      --fg-muted: #9a9a9a;
+      --accent: #b083f0;
+      --border: #2e2e33;
+      --code-bg: #1c1c1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.25rem;
+  }
+  .updated {
+    color: var(--fg-muted);
+    font-size: 0.9rem;
+    margin-top: 0;
+    margin-bottom: 2.5rem;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
+  }
+  p, li { color: var(--fg); }
+  ul { padding-left: 1.25rem; }
+  li { margin-bottom: 0.5rem; }
+  a { color: var(--accent); }
+  code {
+    background: var(--code-bg);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  .app-name { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy Policy for RepoSwipe</h1>
+  <p class="updated">Last updated: September 5, 2026</p>
+
+  <p>
+    <span class="app-name">RepoSwipe</span> is a personal, open-source Android app for discovering
+    GitHub repositories with a swipe-based interface. This page explains what data the app
+    interacts with, where it goes, and what control you have over it.
+  </p>
+
+  <h2>Signing in with GitHub</h2>
+  <p>
+    RepoSwipe uses Firebase Authentication's GitHub sign-in to let you log in with your existing
+    GitHub account. During sign-in, GitHub asks you to approve a limited set of permissions
+    (repository access and follow/unfollow), and RepoSwipe receives a GitHub access token in
+    return.
+  </p>
+  <ul>
+    <li>That token is stored only on your device, encrypted using Android's Keystore-backed
+      secure storage. RepoSwipe has no backend server of its own and never transmits your token
+      anywhere.</li>
+    <li>The token is used exclusively to call GitHub's own API on your behalf &mdash; browsing
+      repositories, starring/unstarring, and following/unfollowing users &mdash; directly from
+      your device to GitHub.</li>
+    <li>Signing out (Settings &rarr; Sign Out) deletes the token from your device. You can also
+      fully revoke RepoSwipe's access at any time from
+      <a href="https://github.com/settings/applications">github.com/settings/applications</a>.</li>
+  </ul>
+
+  <h2>The "Trending Today" leaderboard</h2>
+  <p>
+    When you swipe right (star) or left (pass) on a repository, RepoSwipe records one anonymous,
+    aggregate entry in a shared Cloud Firestore database: the repository's id, name, owner,
+    description, language, GitHub URL, a running swipe count, and a timestamp. This powers the
+    in-app leaderboard of repositories trending across all RepoSwipe users that day.
+  </p>
+  <p>
+    This record is not linked to your identity, account, or GitHub username in any way &mdash;
+    it only describes the repository being swiped on, not who swiped on it.
+  </p>
+
+  <h2>Crash and performance monitoring</h2>
+  <p>
+    RepoSwipe uses <a href="https://sentry.io/privacy/">Sentry</a> to catch crashes and
+    performance issues so they can be fixed. If the app crashes or encounters an error, Sentry
+    automatically receives basic diagnostic information: device model, OS version, app version,
+    and a stack trace of the error. RepoSwipe does not deliberately attach your GitHub identity
+    or any personal profile data to these reports.
+  </p>
+
+  <h2>What RepoSwipe does not do</h2>
+  <ul>
+    <li>No advertising, no ad tracking, no behavioral profiling.</li>
+    <li>No sale or sharing of your data with third parties for marketing purposes.</li>
+    <li>No RepoSwipe-operated backend server &mdash; the app talks directly to GitHub's API,
+      and to Firebase (Google) for sign-in and the leaderboard described above.</li>
+  </ul>
+
+  <h2>Third-party services</h2>
+  <p>RepoSwipe relies on the following third-party services, each governed by its own privacy policy:</p>
+  <ul>
+    <li><a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement">GitHub</a> &mdash; sign-in and repository data</li>
+    <li><a href="https://firebase.google.com/support/privacy">Firebase (Google)</a> &mdash; authentication and the trending leaderboard database</li>
+    <li><a href="https://sentry.io/privacy/">Sentry</a> &mdash; crash and performance monitoring</li>
+  </ul>
+
+  <h2>Children's privacy</h2>
+  <p>
+    RepoSwipe is not directed at children under 13, and does not knowingly collect data from
+    children.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    This page may be updated as the app changes. The full history of edits is publicly visible
+    in the app's <a href="https://github.com/batucanx/RepoSwipe/commits/main/docs/index.html">GitHub commit history</a>.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about this policy or your data can be raised as an issue on the
+    <a href="https://github.com/batucanx/RepoSwipe/issues">RepoSwipe GitHub repository</a>.
+  </p>
+</main>
+</body>
+</html>
