@@ -40,11 +40,14 @@ import com.batuhan.reposwipe.core.common.format.toCompactCount
 import com.batuhan.reposwipe.core.data.model.AvailableLanguages
 import com.batuhan.reposwipe.core.data.model.AvailableTopics
 import com.batuhan.reposwipe.core.data.model.DiscoverFilters
+import com.batuhan.reposwipe.core.designsystem.component.BrandWordmark
 import com.batuhan.reposwipe.core.designsystem.component.RepoSwipeFilterChip
 import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import com.batuhan.reposwipe.core.designsystem.theme.languageColor
 import kotlin.math.roundToInt
+
+private const val BRAND_LOGO_HEIGHT_DP = 32
 
 @Composable
 fun FilterScreen(
@@ -119,10 +122,9 @@ private fun FilterTopBar(
                 )
             }
         }
-        Text(
-            text = stringResource(R.string.filter_brand_name),
-            style = RepoSwipeTheme.typography.displaySmMobile,
-            color = MaterialTheme.colorScheme.primary,
+        BrandWordmark(
+            contentDescription = stringResource(R.string.filter_brand_name),
+            modifier = Modifier.height(BRAND_LOGO_HEIGHT_DP.dp),
         )
         TextButton(onClick = onReset) {
             Text(

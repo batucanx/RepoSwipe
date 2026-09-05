@@ -6,8 +6,11 @@ import com.batuhan.reposwipe.feature.filter.SearchScreen
 
 const val SEARCH_ROUTE = "search"
 
-fun NavGraphBuilder.searchScreen(onClose: () -> Unit) {
+fun NavGraphBuilder.searchScreen(
+    onClose: () -> Unit,
+    onOpenDetail: (owner: String, repo: String) -> Unit,
+) {
     composable(SEARCH_ROUTE) {
-        SearchScreen(onClose = onClose)
+        SearchScreen(onClose = onClose, onOpenDetail = onOpenDetail)
     }
 }

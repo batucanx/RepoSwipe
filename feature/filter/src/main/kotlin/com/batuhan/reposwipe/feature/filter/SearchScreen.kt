@@ -1,7 +1,5 @@
 package com.batuhan.reposwipe.feature.filter
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,10 +43,12 @@ import com.batuhan.reposwipe.core.designsystem.icon.RepoSwipeIcons
 import com.batuhan.reposwipe.core.designsystem.modifier.bottomHairline
 import com.batuhan.reposwipe.core.designsystem.theme.RepoSwipeTheme
 import com.batuhan.reposwipe.core.designsystem.theme.languageColor
+import com.batuhan.reposwipe.core.designsystem.R as DesignSystemR
 
 @Composable
 fun SearchScreen(
     onClose: () -> Unit,
+    onOpenDetail: (owner: String, repo: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -110,10 +110,10 @@ fun SearchScreen(
                         RepoListItem(
                             data = repo.toListItemData(starredStates),
                             onToggleStar = { viewModel.toggleStar(repo) },
-                            onOpenGitHub = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repo.htmlUrl)))
-                            },
+                            onViewClick = { onOpenDetail(repo.ownerLogin, repo.name) },
                             onShare = { context.startActivity(shareRepoIntent(repo.htmlUrl)) },
+                            viewActionLabel = stringResource(DesignSystemR.string.repo_list_item_view_details),
+                            viewActionIcon = RepoSwipeIcons.QuickView,
                         )
                     }
                     if (repos.loadState.append is LoadState.Loading) {

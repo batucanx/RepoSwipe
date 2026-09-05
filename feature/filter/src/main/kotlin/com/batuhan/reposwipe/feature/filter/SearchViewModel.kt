@@ -7,6 +7,7 @@ import androidx.paging.cachedIn
 import com.batuhan.reposwipe.core.data.RepoRepository
 import com.batuhan.reposwipe.core.data.StarRepository
 import com.batuhan.reposwipe.core.data.model.Repo
+import com.batuhan.reposwipe.core.data.model.ownerRepoKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.sentry.Sentry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -62,7 +63,7 @@ class SearchViewModel
         }
 
         fun toggleStar(repo: Repo) {
-            val key = "${repo.ownerLogin}/${repo.name}"
+            val key = repo.ownerRepoKey
             val currentlyStarred = starredStates.value[key] == true
             viewModelScope.launch {
                 runCatching {

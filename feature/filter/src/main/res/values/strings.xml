@@ -1,5 +1,5 @@
 <resources>
-    <string name="filter_close_cd">Kapat</string>
+    <string name="filter_close_cd">Close</string>
     <string name="filter_brand_name">RepoSwipe</string>
     <string name="filter_reset">Reset</string>
     <string name="filter_header_title">Refine Discovery</string>
@@ -20,14 +20,14 @@
     <string name="filter_status_archived">Archived</string>
     <string name="filter_apply">Apply Filters</string>
 
-    <string name="search_close_cd">Kapat</string>
-    <string name="search_placeholder">GitHub\'da repo ara…</string>
-    <string name="search_submit_cd">Ara</string>
-    <string name="search_prompt_title">Repo ara</string>
-    <string name="search_prompt_message">Bir terim yaz ve Ara\'ya bas — örneğin \"react\" veya \"http client\".</string>
-    <string name="search_error_title">Arama başarısız</string>
-    <string name="search_error_message">Bağlantını kontrol et ve tekrar dene.</string>
-    <string name="search_action_retry">Tekrar Dene</string>
-    <string name="search_no_results_title">Sonuç bulunamadı</string>
-    <string name="search_no_results_message">\"%1$s\" için hiç repo bulunamadı.</string>
+    <string name="search_close_cd">Close</string>
+    <string name="search_placeholder">Search repos on GitHub…</string>
+    <string name="search_submit_cd">Search</string>
+    <string name="search_prompt_title">Search repos</string>
+    <string name="search_prompt_message">Type a term and hit Search — e.g. \"react\" or \"http client\".</string>
+    <string name="search_error_title">Search failed</string>
+    <string name="search_error_message">Check your connection and try again.</string>
+    <string name="search_action_retry">Retry</string>
+    <string name="search_no_results_title">No results found</string>
+    <string name="search_no_results_message">No repos found for \"%1$s\".</string>
 </resources>
