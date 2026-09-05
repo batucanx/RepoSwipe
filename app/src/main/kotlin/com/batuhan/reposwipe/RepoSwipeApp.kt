@@ -10,7 +10,6 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.decode.SvgDecoder
 import com.google.firebase.appcheck.FirebaseAppCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.android.core.SentryAndroid
@@ -38,13 +37,13 @@ class RepoSwipeApp :
         // Debug builds attest via a per-install debug token (registered in the Firebase console
         // under App Check > Apps) instead of a real Play Integrity verdict, since Play Integrity
         // requires the app to be signed/distributed through Play. Must run before any other
-        // Firebase product (Auth/Firestore) makes its first call.
+        // Firebase product (Auth/Firestore) makes its first call. debugAppCheckProviderFactoryOrNull()
+        // resolves to a different implementation per build type (see src/debug and src/release) rather
+        // than branching on BuildConfig.DEBUG here, since DebugAppCheckProviderFactory only exists on
+        // debug's classpath (debugImplementation) and a direct reference from src/main would fail to
+        // link the release build.
         FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
-            if (BuildConfig.DEBUG) {
-                DebugAppCheckProviderFactory.getInstance()
-            } else {
-                PlayIntegrityAppCheckProviderFactory.getInstance()
-            },
+            debugAppCheckProviderFactoryOrNull() ?: PlayIntegrityAppCheckProviderFactory.getInstance(),
         )
     }
 
